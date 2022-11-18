@@ -1,87 +1,87 @@
 <html>
-    <head>
-        <title>Attic Checkers</title>
-        <!-- 
-            CSC3210 Final Project
-            Authors: Kathryn O'Neil, Jared Rathbun, Garald Seip
+<head>
+    <title>Attic Checkers</title>
+    <!-- 
+        CSC3210 Final Project
+        Authors: Kathryn O'Neil, Jared Rathbun, Garald Seip
 
-            This file [...]
+        This file [...]
 
-            For above and beynd, we [...]
-        -->
-    </head>
-    <body>
-        <canvas id = "myCanvas" width = window.innerWidth height = window.innerHeight></canvas>
+        For above and beynd, we [...]
+    -->
+</head>
+<body>
+    <canvas id = "myCanvas" width = window.innerWidth height = window.innerHeight></canvas>
 
-        <script type = "module">
+    <script type = "module">
 
-            /**
-             * PLEASE NOTE
-             * This project requires that it be run on a server to avoid violating CORS policy.
-             **/
-            import * as THREE from "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.145.0/three.module.js";
-        // Objects
-            
-        // End Objects
-        // Functions
-            
-        // End Functions
-        // Constants
-            // The colors for the puzzle.
-            const backgroundColor = [0, 0, 0];
-            // The base zoom of the camera.
-            const baseZoom = 100;
-        // End Constants
-        // Variables
-            var scene;
-            var camera;
-            var renderer;
-            // time stores the time when the current frame started.
-            var time;
-            // prevTime stores the time the previous frame was rendered.
-            var prevTime;
-            // delta stores the time minus the previous time over 1,000.
-            var delta;
-        // End Variables
+        /**
+         * PLEASE NOTE
+         * This project requires that it be run on a server to avoid violating CORS policy.
+         **/
+        import * as THREE from "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.145.0/three.module.js";
+    // Objects
+        
+    // End Objects
+    // Functions
+        
+    // End Functions
+    // Constants
+        // The colors for the puzzle.
+        const backgroundColor = [0, 0, 0];
+        // The base zoom of the camera.
+        const baseZoom = 100;
+    // End Constants
+    // Variables
+        var scene;
+        var camera;
+        var renderer;
+        // time stores the time when the current frame started.
+        var time;
+        // prevTime stores the time the previous frame was rendered.
+        var prevTime;
+        // delta stores the time minus the previous time over 1,000.
+        var delta;
+    // End Variables
 
-            scene = new THREE.Scene();
+        scene = new THREE.Scene();
 
-            camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, .1, 3000);
-            camera.position.z = baseZoom;
-            camera.lookAt(lookAt);
-            scene.add(camera);
-            scene.background = new THREE.Color((new THREE.Color).fromArray(backgroundColor));
+        camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, .1, 3000);
+        camera.position.z = baseZoom;
+        camera.lookAt(lookAt);
+        scene.add(camera);
+        scene.background = new THREE.Color((new THREE.Color).fromArray(backgroundColor));
 
-            renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
+        renderer.setSize(window.innerWidth, window.innerHeight);
 
-            function animate()
+        function animate()
+        {
+            requestAnimationFrame(animate);
+
+            // Gets the current time.
+            time = performance.now();
+
+            if(true /* Optional lock condition */)
             {
-                requestAnimationFrame(animate);
-
-                // Gets the current time.
-                time = performance.now();
-
-                if(true /* Optional lock condition */)
-                {
-                    delta = (time - prevTime) / 1000;
+                delta = (time - prevTime) / 1000;
 
 
-                }
-
-                prevTime = time;
-
-                render();
-            } 
-
-            function render()
-            {
-                renderer.render(scene, mainCamera);
             }
 
-            // Initializes prevTime.
-            prevTime = performance.now();
-            animate();
-        </script>
-    </body>
+            prevTime = time;
+
+            render();
+        } 
+
+        function render()
+        {
+            renderer.render(scene, mainCamera);
+        }
+
+        // Initializes prevTime.
+        prevTime = performance.now();
+        animate();
+    </script>
+</body>
 </html>
