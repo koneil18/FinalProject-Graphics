@@ -43,7 +43,7 @@
             // delta stores the time minus the previous time over 1,000.
             var delta;
         // End Variables
-        
+
             scene = new THREE.Scene();
 
             camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, .1, 3000);
@@ -62,7 +62,7 @@
                 // Gets the current time.
                 time = performance.now();
 
-                if(plCon.isLocked)
+                if(true /* Optional lock condition */)
                 {
                     delta = (time - prevTime) / 1000;
 
