@@ -79,6 +79,21 @@
             renderer.render(scene, mainCamera);
         }
 
+        // The keyHandler provides functionality for [...].
+        function keyHandler(e)
+        {
+            var key = e.key.toLowerCase();
+            switch(key)
+            {
+                // N case [...].
+                case "n":
+                    // Add code to do something, or remove the key handler.
+                    break;
+            }
+        };
+        
+        document.addEventListener("keydown", keyHandler, false);
+
         // Initializes prevTime.
         prevTime = performance.now();
         animate();
