@@ -48,7 +48,7 @@ class CheckerPiece {
                 side: THREE.DoubleSide,
                 color: (this.color == 'red') ? new THREE
                     .Color('rgb(208, 12, 24)') : new THREE
-                    .Color('rgb(22, 22, 22')
+                    .Color('rgb(22, 22, 22)')
             }),
 
             // Top
@@ -89,14 +89,12 @@ class CheckerPiece {
 class GameBoard {
     meshesArray = null;
     pieceKeeperArray = Array.from(Array(8), () => new Array(8));
-    worldCoordinateToArrayIndexMap = {};
+    worldCoordinateToArrayIndexMap = new Map();
     scene = null;
 
     constructor(scene) {
         this.scene = scene;
         this.meshesArray = this.buildBoard();
-        
-        console.log(this.meshesArray);
         this.pieceKeeperArray = this.initPieces();
     }
 
@@ -109,15 +107,15 @@ class GameBoard {
         const redWoodTexture = new THREE.TextureLoader()
             .load('assets/board/red_wood.jpg'), blackWoodTexture = new THREE
             .TextureLoader().load('assets/board/black_wood.jpg');
+
         var x = -4.5, y = 0, z = -3.5;
         for (var i = 0; i < 8; i++) {
             for (var j = 0; j < 8; j++) {
                 x += 1;
                 var currentPos = new THREE.Vector3(x, y, z);
-
-                // This isn't working?
-                this.worldCoordinateToArrayIndexMap[currentPos] = 
-                    new Point(i, j);
+                
+                this.worldCoordinateToArrayIndexMap.set(JSON
+                    .stringify(currentPos), new Point(i, j));
 
                 const material = new THREE.MeshPhongMaterial({
                     side: THREE.DoubleSide,
@@ -138,27 +136,74 @@ class GameBoard {
             z += 1;
         }
         
+        const walnutTexture = new THREE.TextureLoader()
+            .load('assets/board/walnut.jpg');
         var woodGeometry = new THREE.BoxGeometry(8, .5, 8);
         var woodMaterial = new THREE.MeshPhongMaterial({
             side: THREE.DoubleSide,
-            map: new THREE.TextureLoader().load('assets/board/walnut.jpg')
+            map: walnutTexture
         });
         var woodMesh = new THREE.Mesh(woodGeometry, woodMaterial);
         woodMesh.position.y = -.26;
         group.add(woodMesh);
+
+        var cylinderGeometry = new THREE.CylinderGeometry(3.75, 3.75, .75, 128);
+        var cylinderMaterial = new THREE.MeshPhongMaterial({
+            side: THREE.DoubleSide,
+            map: walnutTexture
+        });
+        var cylinderMesh = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
+        cylinderMesh.position.set(0, -.75, 0);
+        group.add(cylinderMesh);
+
         this.scene.add(group);
 
         return meshesArray;
     }
 
     initPieces() {
-        new CheckerPiece('red', new THREE.Vector3(-3.5, 0, 3.5), this.scene);
+        var rowCount = 0;
+        
+        // Add the black checkers.
+        for (var z = -3.5; z <= -1.5; z++) {
+            for (var x = -3.5; x < 3.5; x+=2) {
+                var pos = new THREE.Vector3(x, 0, z);
+                var arrayPoint = this.worldCoordinateToArrayIndexMap
+                    .get(JSON.stringify(pos));
+
+                pos.x = (rowCount == 1) ? pos.x + 1 : pos.x;
+
+                // Need to add this to a PieceKeeper object here.
+                new CheckerPiece('black', pos, this.scene);
+            }  
+            rowCount++;          
+        }
+
+        rowCount = 0;
+        // Add the red checkers.
+        for (var z = 3.5; z >= 1.5; z--) {
+            for (var x = -3.5; x < 3.5; x+=2) {
+                var pos = new THREE.Vector3(x, 0, z);
+                var arrayPoint = this.worldCoordinateToArrayIndexMap
+                    .get(JSON.stringify(pos));
+                
+                if (rowCount == 1) {
+                    pos.x += 1;
+                }
+                
+                // Need to add this to a PieceKeeper object here.
+                new CheckerPiece('red', pos, this
+                    .scene);
+            }  
+            rowCount++;          
+        }
     }
 }
 
 class Point {
     constructor(x, y) {
-
+        this.x = x;
+        this.y = y;
     }
 }
 
