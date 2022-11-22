@@ -1,0 +1,49 @@
+<!-- 
+        CSC3210 Final Project
+        Authors: Kathryn O'Neil, Jared Rathbun, Garald Seip
+
+        This file [...]
+
+        For above and beynd, we [...]
+    -->
+<html>
+<head>
+    <title>Attic Checkers</title>
+</head>
+<body>
+    <canvas id = "myCanvas" width = window.innerWidth height = window.innerHeight></canvas>
+    <script type = "module">
+        import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+        import { OrbitControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js';
+        import { GameBoard } from './dao.js';
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window
+            .innerWidth / window.innerHeight, .1, 3000);
+        camera.position.set(0, 5, 5);
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+        scene.add(camera);
+
+        const renderer = new THREE.WebGLRenderer({
+            canvas: myCanvas, antialias: true
+        });
+        renderer.setClearColor(0xffffff);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+
+        const color = 0xFFFFFF;
+        const intensity = 1;
+        const light = new THREE.AmbientLight(color, intensity);
+        scene.add(light);
+
+        new OrbitControls(camera, renderer.domElement);
+
+        var gameBoard = new GameBoard(scene);
+        function render() {
+            renderer.render(scene, camera);
+            requestAnimationFrame(render);
+        }
+        render();
+    </script>
+</body>
+</html>
