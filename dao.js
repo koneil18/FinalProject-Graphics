@@ -1,5 +1,13 @@
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
 
+/*
+*
+*/
+const winningPlayerLocations = {
+    'red': new THREE.Vector3(10, 0 , 10),
+    'black': new THREE.Vector3(10, 0, 10)
+}
+
 /**
  * A class for a single CheckerPiece.
  */
@@ -206,5 +214,40 @@ class Point {
         this.y = y;
     }
 }
+
+/**
+ * A class for a list of pieces.
+ */
+ class PieceKeeper {
+
+    pieceList = []; 
+    isKing = false;
+    worldPosition = null;
+    boardPosition = null;
+    
+    constructor(worldPosition, boardPosition, piece) {
+        this.worldPosition = worldPosition;
+        this.boardPosition = boardPosition;
+        this.piece = piece;
+    }
+
+    makeKing(piece){
+        this.isKing = true;
+        this.pieceList.push(piece);
+    }
+
+    removeFromGame(winningPlayer){
+        var movePos = winningPlayerLocations[winningPlayer]
+        this.pieceList.forEach((piece) => {
+            piece.movePosition(movePos)
+        });
+    }
+
+    movePosition(position){
+        this.pieceList.forEach((piece) => {
+            piece.movePosition(position)
+        });
+    }
+ }
 
 export { CheckerPiece, GameBoard };
