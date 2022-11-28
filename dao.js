@@ -8,6 +8,11 @@ const winningPlayerLocations = {
     'black': new THREE.Vector3(10, 0, 10)
 }
 
+const redTexture = new THREE.TextureLoader()
+    .load('assets/pieces/red_checker_piece.png');
+const blackTexture = new THREE.TextureLoader()
+    .load('assets/pieces/black_checker_piece.png');
+
 /**
  * A class for a single CheckerPiece.
  */
@@ -16,10 +21,6 @@ class CheckerPiece {
      * The geometry for each piece.
      */
     geometry = new THREE.CylinderGeometry(.4, .4, .2, 32);
-    redTexture = new THREE.TextureLoader()
-        .load('assets/pieces/red_checker_piece.png');
-    blackTexture = new THREE.TextureLoader()
-        .load('assets/pieces/black_checker_piece.png');
     materials = null;
     color = null;
     mesh = null;
@@ -62,15 +63,13 @@ class CheckerPiece {
             // Top
             new THREE.MeshPhongMaterial({
                 side: THREE.DoubleSide,
-                map: (this.color == 'red') ? this.redTexture : this
-                    .blackTexture
+                map: (this.color == 'red') ? redTexture : blackTexture
             }),
 
             // Bottom
             new THREE.MeshPhongMaterial({
                 side: THREE.DoubleSide,
-                map: (this.color == 'red') ? this.redTexture : this
-                    .blackTexture
+                map: (this.color == 'red') ? redTexture : blackTexture
             })
         ];
 
@@ -95,7 +94,6 @@ class CheckerPiece {
  * the board.
  */
 class GameBoard {
-    meshesArray = null;
     pieceKeeperArray = Array.from(Array(8), () => new Array(8));
     worldCoordinateToArrayIndexMap = new Map();
     scene = null;
@@ -106,6 +104,22 @@ class GameBoard {
         this.pieceKeeperArray = this.initPieces();
     }
 
+    /**
+     * Linearizes the 2D Array of meshes into a single dimension array.
+     * 
+     * @returns An array of THREE.Mesh objects.
+     */
+    getTilesArray() {
+        const returnList = [];
+
+        for (var row of this.meshesArray) {
+            for (var mesh of row) {
+                returnList.push(mesh);
+            }
+        }
+        return returnList;
+    }
+    
     buildBoard() {
         const meshesArray = Array.from(Array(8), () => new Array(8));
         var fillRed = false;
@@ -205,6 +219,10 @@ class GameBoard {
             }  
             rowCount++;          
         }
+    }
+
+    handleClick(evt) {
+        console.log(evt);
     }
 }
 
