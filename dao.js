@@ -12,7 +12,7 @@ class CheckerPiece {
     /**
      * The geometry for each piece.
      */
-    geometry = new THREE.CylinderGeometry(.4, .4, .2, 32);
+    geometry = new THREE.CylinderGeometry(.4, .4, .1, 32);
     materials = null;
     color = null;
     mesh = null;
@@ -150,6 +150,7 @@ class GameBoard {
             z += 1;
         }
         
+        // Add the piece the board sits on, and the support for it.
         const walnutTexture = new THREE.TextureLoader()
             .load('assets/board/walnut.jpg');
         var woodGeometry = new THREE.BoxGeometry(8, .5, 8);
@@ -160,7 +161,6 @@ class GameBoard {
         var woodMesh = new THREE.Mesh(woodGeometry, woodMaterial);
         woodMesh.position.y = -.26;
         group.add(woodMesh);
-
         var cylinderGeometry = new THREE.CylinderGeometry(3.75, 3.75, .75, 128);
         var cylinderMaterial = new THREE.MeshPhongMaterial({
             side: THREE.DoubleSide,
@@ -169,6 +169,16 @@ class GameBoard {
         var cylinderMesh = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
         cylinderMesh.position.set(0, -.75, 0);
         group.add(cylinderMesh);
+
+        // Add a table.
+        var tableGeometry = new THREE.CylinderGeometry(8, 8, .3, 128);
+        var tableMaterial = new THREE.MeshPhongMaterial({
+            side: THREE.DoubleSide,
+            map: new THREE.TextureLoader().load('assets/board/tabletop.jpg')
+        });
+        var tableMesh = new THREE.Mesh(tableGeometry, tableMaterial);
+        tableMesh.position.y = -1.3;
+        group.add(tableMesh);
 
         this.scene.add(group);
 
