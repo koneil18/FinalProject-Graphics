@@ -4,8 +4,8 @@ import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build
 *
 */
 const winningPlayerLocations = {
-    'red': new THREE.Vector3(10, 0 , 10),
-    'black': new THREE.Vector3(10, 0, 10)
+    'red': new THREE.Vector3(5, 0 , 0),
+    'black': new THREE.Vector3(-5, 0, 0)
 }
 
 /**
