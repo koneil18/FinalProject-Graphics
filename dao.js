@@ -95,13 +95,14 @@ class CheckerPiece {
  */
 class GameBoard {
     pieceKeeperArray = Array.from(Array(8), () => new Array(8));
+    tilesArray = null
     worldCoordinateToArrayIndexMap = new Map();
     scene = null;
 
     constructor(scene) {
         this.scene = scene;
-        this.meshesArray = this.buildBoard();
-        this.pieceKeeperArray = this.initPieces();
+        this.tilesArray = this.buildBoard();
+        this.initPieces();
     }
 
     /**
@@ -112,9 +113,9 @@ class GameBoard {
     getTilesArray() {
         const returnList = [];
 
-        for (var row of this.meshesArray) {
-            for (var mesh of row) {
-                returnList.push(mesh);
+        for (var row of this.tilesArray) {
+            for (var tile of row) {
+                returnList.push(tile);
             }
         }
         return returnList;
@@ -195,20 +196,20 @@ class GameBoard {
 
     initPieces() {
         var rowCount = 0;
-        
         // Add the black checkers.
         for (var z = -3.5; z <= -1.5; z++) {
             for (var x = -3.5; x < 3.5; x+=2) {
                 var pos = new THREE.Vector3(x, 0, z);
                 var arrayPoint = this.worldCoordinateToArrayIndexMap
                     .get(JSON.stringify(pos));
-
+                
                 pos.x = (rowCount == 1) ? pos.x + 1 : pos.x;
 
                 // Need to add this to a PieceKeeper object here.
-                new CheckerPiece('black', pos, this.scene);
+                var piece = new CheckerPiece('black', pos, this.scene);
+                this.pieceKeeperArray[arrayPoint.x][arrayPoint.y] = piece;
             }  
-            rowCount++;          
+            rowCount++;     
         }
 
         rowCount = 0;
@@ -222,17 +223,19 @@ class GameBoard {
                 if (rowCount == 1) {
                     pos.x += 1;
                 }
-                
+
                 // Need to add this to a PieceKeeper object here.
-                new CheckerPiece('red', pos, this
-                    .scene);
+                var piece = new CheckerPiece('red', pos, this.scene);
+                this.pieceKeeperArray[arrayPoint.x][arrayPoint.y] = piece;
             }  
             rowCount++;          
         }
     }
 
-    handleClick(evt) {
-        console.log(evt);
+    handleClick(position) {
+        var arrayPoint = this.worldCoordinateToArrayIndexMap.get(JSON
+            .stringify(position));
+        console.log(arrayPoint);
     }
 }
 

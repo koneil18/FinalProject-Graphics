@@ -37,14 +37,14 @@
         scene.add(light);
 
         // This needs to be disabled to make MouseClicking work.
-        new OrbitControls(camera, renderer.domElement);
+        // new OrbitControls(camera, renderer.domElement);
 
         const rayCaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
         const gameBoard = new GameBoard(scene);
 
         // Found at: https://threejs.org/docs/#api/en/core/Raycaster
-        document.addEventListener('mousedown', (evt) => {
+        document.addEventListener('mousedown', (event) => {
             // calculate pointer position in normalized device coordinates
             // (-1 to +1) for both components
             pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -52,8 +52,10 @@
             rayCaster.setFromCamera(pointer, camera);
             const intersects = rayCaster.intersectObjects(gameBoard
                 .getTilesArray());
-            for (let i = 0; i < intersects.length; i++) {
-                intersects[i].object.material.color.set('green');
+
+            if (intersects.length > 0) {
+                var clickPosition = intersects[0].object.position;
+                gameBoard.handleClick(clickPosition);
             }
         });
 
