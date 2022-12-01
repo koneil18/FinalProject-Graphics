@@ -33,9 +33,9 @@ class CheckerPiece {
      * @param {THREE.Vector3} position The position the piece should start at.
      * @param {THREE.Scene} scene The scene object to add the checker piece to.
      */
-    constructor(color, position, scene) {
+    constructor(color, position, group) {
         this.color = color;
-        this.buildPiece(scene, position);
+        this.buildPiece(group, position);
     }
 
     get getColor() {
@@ -49,7 +49,7 @@ class CheckerPiece {
      * @param {THREE.Scene} scene The scene object to add the checker piece to.
      * @param {THREE.Vector3} position The position to move the checker piece to.
      */
-    buildPiece(scene, position) {
+    buildPiece(group, position) {
         // Depending on the color of the checker, build the correct materials.
         this.materials = [
             // Side
@@ -75,7 +75,7 @@ class CheckerPiece {
 
         this.mesh = new THREE.Mesh(this.geometry, this.materials);
         this.mesh.position.set(position.x, position.y, position.z);
-        scene.add(this.mesh);
+        group.add(this.mesh);
     }
 
     /**
@@ -98,9 +98,17 @@ class GameBoard {
     tilesArray = null
     worldCoordinateToArrayIndexMap = new Map();
     scene = null;
+    redWinnerCount = 0;
+    blackWinnerCount = 0;
+    currentTurn = 'red';
+    validMovesVisible = false;
+    highlightedTileList = [];
+    currentSelectedPieceKeeper = null;
+    boardGroup = null;
 
-    constructor(scene) {
+    constructor(scene, camera) {
         this.scene = scene;
+        this.camera = camera;
         this.tilesArray = this.buildBoard();
         this.initPieces();
     }
@@ -138,7 +146,7 @@ class GameBoard {
                 var currentPos = new THREE.Vector3(x, y, z);
                 
                 this.worldCoordinateToArrayIndexMap.set(JSON
-                    .stringify(currentPos), new Point(i, j));
+                    .stringify(currentPos), new Point(j, i));
 
                 const material = new THREE.MeshPhongMaterial({
                     side: THREE.DoubleSide,
@@ -146,10 +154,12 @@ class GameBoard {
                     shininess: 100,
                     map: (fillRed) ? redWoodTexture : blackWoodTexture
                 });
+                var currentColor = (fillRed) ? 'red' : 'black';
                 fillRed = !fillRed;
 
                 const mesh = new THREE.Mesh(geometry, material);
-                meshesArray[i][j] = mesh;
+                mesh.tileColor = currentColor;
+                meshesArray[j][i] = mesh;
                 mesh.position.set(currentPos.x , currentPos.y, currentPos.z);
                 group.add(mesh);
             }
@@ -187,9 +197,10 @@ class GameBoard {
         });
         var tableMesh = new THREE.Mesh(tableGeometry, tableMaterial);
         tableMesh.position.y = -1.3;
-        group.add(tableMesh);
+        this.scene.add(tableMesh);
 
         this.scene.add(group);
+        this.boardGroup = group;
 
         return meshesArray;
     }
@@ -199,15 +210,18 @@ class GameBoard {
         // Add the black checkers.
         for (var z = -3.5; z <= -1.5; z++) {
             for (var x = -3.5; x < 3.5; x+=2) {
-                var pos = new THREE.Vector3(x, 0, z);
+                var pos = new THREE.Vector3(x, 0, z);  
+
+                if (rowCount == 1) {
+                    pos.x++;
+                }
+
                 var arrayPoint = this.worldCoordinateToArrayIndexMap
                     .get(JSON.stringify(pos));
-                
-                pos.x = (rowCount == 1) ? pos.x + 1 : pos.x;
 
-                // Need to add this to a PieceKeeper object here.
-                var piece = new CheckerPiece('black', pos, this.scene);
-                this.pieceKeeperArray[arrayPoint.x][arrayPoint.y] = piece;
+                var piece = new CheckerPiece('black', pos, this.boardGroup);
+                var pieceKeeper = new PieceKeeper(pos, arrayPoint, piece);
+                this.pieceKeeperArray[arrayPoint.x][arrayPoint.z] = pieceKeeper;
             }  
             rowCount++;     
         }
@@ -217,17 +231,19 @@ class GameBoard {
         for (var z = 3.5; z >= 1.5; z--) {
             for (var x = -3.5; x < 3.5; x+=2) {
                 var pos = new THREE.Vector3(x, 0, z);
-                var arrayPoint = this.worldCoordinateToArrayIndexMap
-                    .get(JSON.stringify(pos));
                 
                 if (rowCount == 1) {
-                    pos.x += 1;
+                    pos.x++;
                 }
 
-                // Need to add this to a PieceKeeper object here.
-                var piece = new CheckerPiece('red', pos, this.scene);
-                this.pieceKeeperArray[arrayPoint.x][arrayPoint.y] = piece;
+                var arrayPoint = this.worldCoordinateToArrayIndexMap
+                    .get(JSON.stringify(pos));
+
+                var piece = new CheckerPiece('red', pos, this.boardGroup);
+                var pieceKeeper = new PieceKeeper(pos, arrayPoint, piece);
+                this.pieceKeeperArray[arrayPoint.x][arrayPoint.z] = pieceKeeper;
             }  
+            
             rowCount++;          
         }
     }
@@ -235,14 +251,91 @@ class GameBoard {
     handleClick(position) {
         var arrayPoint = this.worldCoordinateToArrayIndexMap.get(JSON
             .stringify(position));
-        console.log(arrayPoint);
+        const highlightValidMoves = () => {
+            var pieceKeeperObj = this
+                .pieceKeeperArray[arrayPoint.x][arrayPoint.z];
+
+            const highlightTile = (tile) => {
+                const edges = new THREE.EdgesGeometry(tile.geometry);
+                const outline = new THREE.LineSegments(edges, new THREE
+                    .LineBasicMaterial({ color: 'white' }));
+                outline.position.set(tile.position.x, tile.position.y, tile
+                    .position.z);
+                this.scene.add(outline);
+                this.highlightedTileList.push(outline);
+            };
+
+            const clearHighlightedTileList = () => {
+                while (this.highlightedTileList.length > 0) {
+                    var currentTile = this.highlightedTileList.pop();
+                    this.scene.remove(currentTile);
+                }
+            }
+
+            var x = arrayPoint.x, z = arrayPoint.z;
+            const selectedPiece = this.pieceKeeperArray[x][z];
+            if (selectedPiece != undefined) {
+                if (this.tilesArray[x][z].tileColor == this.currentTurn && 
+                    this.tilesArray[x][z] != undefined) {
+                    clearHighlightedTileList();
+                    highlightTile(this.tilesArray[x][z]);
+                }
+            }            
+        };
+        
+        if (this.validMovesVisible) {
+            // Move the piece the user originally selected.
+        } else {
+            highlightValidMoves();
+            
+        }
+    }
+
+    checkForWinner() {
+        var winningPlayer = null;
+
+        if (this.redWinnerCount == 12) {
+            winningPlayer = 'Red';
+        } 
+        
+        if (this.blackWinnerCount == 12) {
+            winningPlayer = 'Black';
+        }
+    }
+
+    rotateTurn() {
+        //Rotate the camera
+        return new Promise((resolve, reject) => {
+            const cameraStart = {
+                x: this.camera.position.x, 
+                z: this.camera.position.z
+            };
+
+            // Flip the Z values, changing the depth of the camera.
+            const cameraEnd = {
+                x: this.camera.position.x,
+                z: this.camera.position.z * -1
+            }
+
+            const tween = new TWEEN.Tween(cameraStart)
+                .to(cameraEnd, 1000)
+                .onUpdate((pos) => {
+                    // Need to do calculation for amount to rotate the camera here.
+                })
+                .onComplete(() => {
+                    // Flip the current turn.
+                    this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
+                    resolve();
+                });
+            tween.start();
+        });
     }
 }
 
 class Point {
-    constructor(x, y) {
+    constructor(x, z) {
         this.x = x;
-        this.y = y;
+        this.z = z;
     }
 }
 
@@ -255,16 +348,27 @@ class Point {
     isKing = false;
     worldPosition = null;
     boardPosition = null;
+    color = null;
     
     constructor(worldPosition, boardPosition, piece) {
         this.worldPosition = worldPosition;
         this.boardPosition = boardPosition;
         this.piece = piece;
+        this.color = piece.color;
     }
 
     makeKing(piece){
         this.isKing = true;
         this.pieceList.push(piece);
+
+        // "Stack" the piece on top of the current piece.
+        var stackPos = this.pieceList[0].worldPosition;
+        
+        var y = stackPos.y;
+        this.pieceList.forEach((piece) => {
+            piece.mesh.position.set(stackPos.x, y, stackPos.z);
+            y+=.1;
+        });
     }
 
     removeFromGame(winningPlayer){
