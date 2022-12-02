@@ -17,6 +17,7 @@
         import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
         import { OrbitControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js';
         import { GameBoard } from './dao.js';
+        import { ParticleSimulator } from '.dust.js';
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window
@@ -36,6 +37,8 @@
         const intensity = 1;
         const light = new THREE.AmbientLight(color, intensity);
         scene.add(light);
+
+        const ps = new ParticleSimulator(scene, camera);
 
         // This needs to be disabled to make MouseClicking work.
         // new OrbitControls(camera, renderer.domElement);
