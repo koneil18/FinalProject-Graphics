@@ -4,7 +4,7 @@ import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build
 *
 */
 const winningPlayerLocations = {
-    'red': new THREE.Vector3(5, 0 , 0),
+    'red': new THREE.Vector3(5, 0, 0),
     'black': new THREE.Vector3(-5, 0, 0)
 }
 
@@ -57,7 +57,7 @@ class CheckerPiece {
                 side: THREE.DoubleSide,
                 color: (this.color == 'red') ? new THREE
                     .Color('rgb(208, 12, 24)') : new THREE
-                    .Color('rgb(22, 22, 22)')
+                        .Color('rgb(22, 22, 22)')
             }),
 
             // Top
@@ -105,12 +105,15 @@ class GameBoard {
     highlightedTileList = [];
     currentSelectedPieceKeeper = null;
     boardGroup = null;
+    cameraAngle = 0;
 
     constructor(scene, camera) {
         this.scene = scene;
         this.camera = camera;
         this.tilesArray = this.buildBoard();
         this.initPieces();
+
+        this.rotateTurn();
     }
 
     /**
@@ -128,23 +131,23 @@ class GameBoard {
         }
         return returnList;
     }
-    
+
     buildBoard() {
         const meshesArray = Array.from(Array(8), () => new Array(8));
         var fillRed = false;
         const geometry = new THREE.BoxGeometry(1, .03, 1);
-        
+
         const group = new THREE.Group();
         const redWoodTexture = new THREE.TextureLoader()
             .load('assets/board/red_wood.jpg'), blackWoodTexture = new THREE
-            .TextureLoader().load('assets/board/black_wood.jpg');
+                .TextureLoader().load('assets/board/black_wood.jpg');
 
         var x = -4.5, y = 0, z = -3.5;
         for (var i = 0; i < 8; i++) {
             for (var j = 0; j < 8; j++) {
                 x += 1;
                 var currentPos = new THREE.Vector3(x, y, z);
-                
+
                 this.worldCoordinateToArrayIndexMap.set(JSON
                     .stringify(currentPos), new Point(j, i));
 
@@ -160,7 +163,7 @@ class GameBoard {
                 const mesh = new THREE.Mesh(geometry, material);
                 mesh.tileColor = currentColor;
                 meshesArray[j][i] = mesh;
-                mesh.position.set(currentPos.x , currentPos.y, currentPos.z);
+                mesh.position.set(currentPos.x, currentPos.y, currentPos.z);
                 group.add(mesh);
             }
 
@@ -168,7 +171,7 @@ class GameBoard {
             x = -4.5;
             z += 1;
         }
-        
+
         // Add the piece the board sits on, and the support for it.
         const walnutTexture = new THREE.TextureLoader()
             .load('assets/board/walnut.jpg');
@@ -209,8 +212,8 @@ class GameBoard {
         var rowCount = 0;
         // Add the black checkers.
         for (var z = -3.5; z <= -1.5; z++) {
-            for (var x = -3.5; x < 3.5; x+=2) {
-                var pos = new THREE.Vector3(x, 0, z);  
+            for (var x = -3.5; x < 3.5; x += 2) {
+                var pos = new THREE.Vector3(x, 0, z);
 
                 if (rowCount == 1) {
                     pos.x++;
@@ -222,16 +225,16 @@ class GameBoard {
                 var piece = new CheckerPiece('black', pos, this.boardGroup);
                 var pieceKeeper = new PieceKeeper(pos, arrayPoint, piece);
                 this.pieceKeeperArray[arrayPoint.x][arrayPoint.z] = pieceKeeper;
-            }  
-            rowCount++;     
+            }
+            rowCount++;
         }
 
         rowCount = 0;
         // Add the red checkers.
         for (var z = 3.5; z >= 1.5; z--) {
-            for (var x = -3.5; x < 3.5; x+=2) {
+            for (var x = -3.5; x < 3.5; x += 2) {
                 var pos = new THREE.Vector3(x, 0, z);
-                
+
                 if (rowCount == 1) {
                     pos.x++;
                 }
@@ -242,9 +245,9 @@ class GameBoard {
                 var piece = new CheckerPiece('red', pos, this.boardGroup);
                 var pieceKeeper = new PieceKeeper(pos, arrayPoint, piece);
                 this.pieceKeeperArray[arrayPoint.x][arrayPoint.z] = pieceKeeper;
-            }  
-            
-            rowCount++;          
+            }
+
+            rowCount++;
         }
     }
 
@@ -275,19 +278,19 @@ class GameBoard {
             var x = arrayPoint.x, z = arrayPoint.z;
             const selectedPiece = this.pieceKeeperArray[x][z];
             if (selectedPiece != undefined) {
-                if (this.tilesArray[x][z].tileColor == this.currentTurn && 
+                if (this.tilesArray[x][z].tileColor == this.currentTurn &&
                     this.tilesArray[x][z] != undefined) {
                     clearHighlightedTileList();
                     highlightTile(this.tilesArray[x][z]);
                 }
-            }            
+            }
         };
-        
+
         if (this.validMovesVisible) {
             // Move the piece the user originally selected.
         } else {
             highlightValidMoves();
-            
+
         }
     }
 
@@ -296,36 +299,45 @@ class GameBoard {
 
         if (this.redWinnerCount == 12) {
             winningPlayer = 'Red';
-        } 
-        
+        }
+
         if (this.blackWinnerCount == 12) {
             winningPlayer = 'Black';
         }
     }
 
     rotateTurn() {
+        // From https://stackoverflow.com/questions/26660395/rotation-around-an-axis-three-js
+        // In order to rotate about an axis, you must construct the rotation matrix (which will rotate about the axis by default)
+        // Note: You can also use Quaternions or Euler angles, which you may see if you search online
+        //    That is beyond what I'd like to go over in this course, but feel free to experiment
+        function rotateAboutWorldAxis(object, axis, angle) {
+            var rotationMatrix = new THREE.Matrix4();
+            rotationMatrix.makeRotationAxis(axis.normalize(), angle);
+            var currentPos = new THREE.Vector4(object.position.x, object
+                .position.y, object.position.z, 1);
+            var newPos = currentPos.applyMatrix4(rotationMatrix);
+            object.position.x = newPos.x;
+            object.position.y = newPos.y;
+            object.position.z = newPos.z;
+            object.lookAt(0, 0, 0);
+        }
+
         //Rotate the camera
         return new Promise((resolve, reject) => {
-            const cameraStart = {
-                x: this.camera.position.x, 
-                z: this.camera.position.z
-            };
-
-            // Flip the Z values, changing the depth of the camera.
-            const cameraEnd = {
-                x: this.camera.position.x,
-                z: this.camera.position.z * -1
-            }
-
-            const tween = new TWEEN.Tween(cameraStart)
-                .to(cameraEnd, 1000)
-                .onUpdate((pos) => {
-                    // Need to do calculation for amount to rotate the camera here.
+            const tween = new TWEEN.Tween({angle: this.cameraAngle})
+                .to({angle: this.cameraAngle + 180}, 2000)
+                .onUpdate((angle) => {
+                    this.cameraAngle += angle.angle;
+                    rotateAboutWorldAxis(this.camera, new THREE
+                        .Vector3(0, 1, 0), THREE.MathUtils
+                        .degToRad(this.cameraAngle)); 
                 })
                 .onComplete(() => {
                     // Flip the current turn.
                     this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
                     resolve();
+                    console.log(this.cameraAngle);
                 });
             tween.start();
         });
@@ -342,14 +354,14 @@ class Point {
 /**
  * A class for a list of pieces.
  */
- class PieceKeeper {
+class PieceKeeper {
 
-    pieceList = []; 
+    pieceList = [];
     isKing = false;
     worldPosition = null;
     boardPosition = null;
     color = null;
-    
+
     constructor(worldPosition, boardPosition, piece) {
         this.worldPosition = worldPosition;
         this.boardPosition = boardPosition;
@@ -357,32 +369,32 @@ class Point {
         this.color = piece.color;
     }
 
-    makeKing(piece){
+    makeKing(piece) {
         this.isKing = true;
         this.pieceList.push(piece);
 
         // "Stack" the piece on top of the current piece.
         var stackPos = this.pieceList[0].worldPosition;
-        
+
         var y = stackPos.y;
         this.pieceList.forEach((piece) => {
             piece.mesh.position.set(stackPos.x, y, stackPos.z);
-            y+=.1;
+            y += .1;
         });
     }
 
-    removeFromGame(winningPlayer){
+    removeFromGame(winningPlayer) {
         var movePos = winningPlayerLocations[winningPlayer]
         this.pieceList.forEach((piece) => {
             piece.movePosition(movePos)
         });
     }
 
-    movePosition(position){
+    movePosition(position) {
         this.pieceList.forEach((piece) => {
             piece.movePosition(position)
         });
     }
- }
+}
 
 export { CheckerPiece, GameBoard };
