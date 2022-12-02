@@ -113,9 +113,13 @@ class GameBoard {
         this.tilesArray = this.buildBoard();
         this.initPieces();
 
-        this.rotateTurn();
+        this.rotationTest();
     }
 
+    async rotationTest() {
+        await this.rotateTurn();
+        // await this.rotateTurn();
+    }
     /**
      * Linearizes the 2D Array of meshes into a single dimension array.
      * 
@@ -273,15 +277,52 @@ class GameBoard {
                     var currentTile = this.highlightedTileList.pop();
                     this.scene.remove(currentTile);
                 }
-            }
+            };
 
-            var x = arrayPoint.x, z = arrayPoint.z;
-            const selectedPiece = this.pieceKeeperArray[x][z];
+            var startX = arrayPoint.x, startZ = arrayPoint.z;
+
+            // const detectValidMoves = (x, z) => {
+            //     const inBounds = (x, z) => {
+            //         retu
+            //     }
+            // };
+
+            var posList = [];
+            const selectedPiece = this.pieceKeeperArray[startX][startZ];
             if (selectedPiece != undefined) {
-                if (this.tilesArray[x][z].tileColor == this.currentTurn &&
-                    this.tilesArray[x][z] != undefined) {
+                if (this.tilesArray[startX][startZ].tileColor == this
+                    .currentTurn && this.tilesArray[startX][startZ] != 
+                    undefined) {
                     clearHighlightedTileList();
-                    highlightTile(this.tilesArray[x][z]);
+
+                    if (this.currentTurn == 'black') {
+                        var diagLeft = this
+                            .pieceKeeperArray[startX - 1][startZ - 1];
+                        if (diagLeft == undefined) {
+                            posList.push(new Point(startX - 1, startZ - 1));
+                        } else if (diagLeft.color != this.currentTurn) {
+                            var diag2Left = this
+                                .pieceKeeperArray[startX - 2][startZ - 2];
+                            if (diag2Left == undefined) {
+                                posList.push(new Point(startX - 2, startZ - 2));
+                            }
+                        }
+
+                        var diagRight = this
+                            .pieceKeeperArray[startX + 1][startZ - 1];
+                        if (diagRight == undefined) {
+                            posList.push(new Point(startX + 1, startZ - 2));
+                        } else if (diagRight.color != this.currentTurn) {
+                            var diag2Right = this
+                                .pieceKeeperArray[startX - 2][startZ - 2];
+                            if (diag2Right == undefined) {
+                                posList.push(new Point(startX + 2, startZ - 2));
+                            }
+                        }
+                    }
+                    for (var point of this.highlightedTileList) {
+                        console.log(point);
+                    }
                 }
             }
         };
@@ -324,20 +365,26 @@ class GameBoard {
         }
 
         //Rotate the camera
+        console.log('Beginning rotation', this.cameraAngle);
         return new Promise((resolve, reject) => {
             const tween = new TWEEN.Tween({angle: this.cameraAngle})
                 .to({angle: this.cameraAngle + 180}, 2000)
                 .onUpdate((angle) => {
-                    this.cameraAngle += angle.angle;
+                    console.log(angle.angle);
+                    this.cameraAngle = angle.angle;
                     rotateAboutWorldAxis(this.camera, new THREE
                         .Vector3(0, 1, 0), THREE.MathUtils
-                        .degToRad(this.cameraAngle)); 
+                        .degToRad(angle.angle)); 
                 })
                 .onComplete(() => {
                     // Flip the current turn.
                     this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
+
+                    if (this.cameraAngle == 360) {
+                        this.cameraAngle = 0;
+                    }
+
                     resolve();
-                    console.log(this.cameraAngle);
                 });
             tween.start();
         });
