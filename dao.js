@@ -96,6 +96,7 @@ class CheckerPiece {
 class GameBoard {
     pieceKeeperArray = Array.from(Array(8), () => new Array(8));
     tilesArray = null
+    allObjects = [];
     worldCoordinateToArrayIndexMap = new Map();
     scene = null;
     redWinnerCount = 0;
@@ -165,6 +166,7 @@ class GameBoard {
                 fillRed = !fillRed;
 
                 const mesh = new THREE.Mesh(geometry, material);
+                this.allObjects.push(mesh);
                 mesh.tileColor = currentColor;
                 meshesArray[j][i] = mesh;
                 mesh.position.set(currentPos.x, currentPos.y, currentPos.z);
@@ -185,6 +187,7 @@ class GameBoard {
             map: walnutTexture
         });
         var woodMesh = new THREE.Mesh(woodGeometry, woodMaterial);
+        this.allObjects.push(woodMesh);
         woodMesh.position.y = -.26;
         group.add(woodMesh);
         var cylinderGeometry = new THREE.CylinderGeometry(3.75, 3.75, .75, 128);
@@ -193,6 +196,7 @@ class GameBoard {
             map: walnutTexture
         });
         var cylinderMesh = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
+        this.allObjects.push(cylinderMesh);
         cylinderMesh.position.set(0, -.75, 0);
         group.add(cylinderMesh);
 
@@ -203,6 +207,7 @@ class GameBoard {
             map: new THREE.TextureLoader().load('assets/board/tabletop.jpg')
         });
         var tableMesh = new THREE.Mesh(tableGeometry, tableMaterial);
+        this.allObjects.push(tableMesh);
         tableMesh.position.y = -1.3;
         this.scene.add(tableMesh);
 

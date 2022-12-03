@@ -10,10 +10,11 @@ import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build
 
 class Particles
 {
-    constructor(scene, count, bounds)
+    constructor(scene, count, bounds, objArray)
     {
         this.scene = scene;
         this.bounds = bounds;
+        this.objArray = objArray;
 
         this.geometry = new THREE.OctahedronGeometry(0.02, 2);
         this.material = new THREE.MeshPhongMaterial({color: 0xd2b48c});
@@ -58,8 +59,11 @@ class Particles
         for(var i = 0; i < this.particles.length; i++)
         {
             this.particles[i].translateOnAxis(this.directions[i], this.speeds[i] * delta);
-            this.directions[i].add(new THREE.Vector3(this.posOrNeg() * Math.random() / 10, this.posOrNeg() * Math.random() / 10, this.posOrNeg() * Math.random() / 10));
+            this.directions[i].add(new THREE.Vector3(this.posOrNeg() * Math.random() / 10, 
+                                                     this.posOrNeg() * Math.random() / 10, 
+                                                     this.posOrNeg() * Math.random() / 10));
             this.rebound(this.particles[i].position, i);
+            this.collide(this.particles[i].position, i);
         }
     }
 
@@ -75,8 +79,16 @@ class Particles
             dir.y *= -1;
         if((point.z >= max.z && dir.z >= 0 || point.z <= min.z && dir.z <= 0))
             dir.z *= -1;
+    }
 
-        
+    collide(point, index)
+    {
+        for(var i = 0; i < this.objArray.length; i++)
+        {
+            if(this.objArray[i].geometry.boundingBox.containsPoint(point) &&
+                this.objArray[i].geometry.boundingSphere.containsPoint(point))
+                this.speeds[index] = 0;
+        }
     }
 }
 
@@ -90,13 +102,22 @@ class ParticleSimulator
      * @param {[Mesh, Mesh, ...]} objArray The array of objects in the scene.
      * @param {Box3} bounds The bounds of the dust.
      */
-    constructor(scene, camera, bounds)
+    constructor(scene, objArray, bounds)
     {
         this.scene = scene;
-        this.camera = camera;
+        this.objArray = objArray;
         this.bounds = bounds;
 
-        this.particles = new Particles(scene, 1000, bounds);
+        for(var i = 0; i < objArray.length; i++)
+        {
+            objArray[i].geometry.computeBoundingBox();
+            objArray[i].geometry.boundingBox.applyMatrix4(objArray[i].matrixWorld);
+
+            objArray[i].geometry.computeBoundingSphere();
+            objArray[i].geometry.boundingSphere.applyMatrix4(objArray[i].matrixWorld);
+        }
+
+        this.particles = new Particles(scene, 1000, bounds, objArray);
     }
 
     update(delta)

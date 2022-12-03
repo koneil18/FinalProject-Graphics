@@ -19,13 +19,6 @@
         import { GameBoard } from './dao.js';
         import { ParticleSimulator } from './dust.js';
 
-        function constructObjectArray()
-        {
-            var objArray = [];
-
-            
-        }
-
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window
             .innerWidth / window.innerHeight, .1, 3000);
@@ -46,8 +39,6 @@
         scene.add(light);
 
         const atticDimensions = new THREE.Box3(new THREE.Vector3(-25, -10, -25), new THREE.Vector3(25, 10, 25));
-
-        const ps = new ParticleSimulator(scene, camera, atticDimensions);
 
         // This needs to be disabled to make MouseClicking work.
         new OrbitControls(camera, renderer.domElement);
@@ -79,6 +70,8 @@
             renderer.render(scene, camera);
             requestAnimationFrame(render);
         }
+
+        const ps = new ParticleSimulator(scene, gameBoard.allObjects, atticDimensions);
         render();
     </script>
 </body>
