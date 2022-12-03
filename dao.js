@@ -1,4 +1,4 @@
-import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import * as THREE from 'three';
 
 /*
 *
@@ -291,7 +291,7 @@ class GameBoard {
             const selectedPiece = this.pieceKeeperArray[startX][startZ];
             if (selectedPiece != undefined) {
                 if (this.tilesArray[startX][startZ].tileColor == this
-                    .currentTurn && this.tilesArray[startX][startZ] != 
+                    .currentTurn && this.tilesArray[startX][startZ] !=
                     undefined) {
                     clearHighlightedTileList();
 
@@ -350,9 +350,7 @@ class GameBoard {
     rotateTurn() {
         // From https://stackoverflow.com/questions/26660395/rotation-around-an-axis-three-js
         // In order to rotate about an axis, you must construct the rotation matrix (which will rotate about the axis by default)
-        // Note: You can also use Quaternions or Euler angles, which you may see if you search online
-        //    That is beyond what I'd like to go over in this course, but feel free to experiment
-        function rotateAboutWorldAxis(object, axis, angle) {
+        const rotateAboutWorldAxis = (object, axis, angle) => {
             var rotationMatrix = new THREE.Matrix4();
             rotationMatrix.makeRotationAxis(axis.normalize(), angle);
             var currentPos = new THREE.Vector4(object.position.x, object
@@ -365,18 +363,23 @@ class GameBoard {
         }
 
         //Rotate the camera
-        console.log('Beginning rotation', this.cameraAngle);
         return new Promise((resolve, reject) => {
+            const clock = new THREE.Clock();
+            this.cameraAngle = 0;
             const tween = new TWEEN.Tween({angle: this.cameraAngle})
                 .to({angle: this.cameraAngle + 180}, 2000)
                 .onUpdate((angle) => {
-                    console.log(angle.angle);
-                    this.cameraAngle = angle.angle;
+                    // The angle between 0 and 180.
+                    var angleToRotate = angle.angle;
+
+                    // Rotate the camera about the Y-axis, with the small angle
+                    // for this callback of the tween.
                     rotateAboutWorldAxis(this.camera, new THREE
                         .Vector3(0, 1, 0), THREE.MathUtils
-                        .degToRad(angle.angle)); 
+                        .degToRad(angleToRotate)); 
                 })
                 .onComplete(() => {
+                    
                     // Flip the current turn.
                     this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
 
