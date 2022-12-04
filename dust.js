@@ -15,6 +15,8 @@ class Particle
         this.scene = scene;
         this.bounds = bounds;
         this.objArray = objArray;
+        
+        this.collisionArray = [];
 
         this.geometry = new THREE.OctahedronGeometry(0.02 * 10, 2);
         this.material = new THREE.MeshPhongMaterial({color: /*0xd2b48c*/ 'blue'});
@@ -83,55 +85,37 @@ class Particle
             
         var bSphere;
 
-        var xDist, yDist, zDist;
-        var xToward, yToward, zToward;
+        for(var i = this.collisionArray.length - 1; i >= 0; i--)
+            if(!this.collisionArray[i].containsPoint(point))
+                this.collisionArray.splice(i, 1);
 
         for(var i = 0; i < this.objArray.length; i++)
         {
             var bounced = false;
             bBox = this.objArray[i].geometry.boundingBox;
             
-            bSphere = this.objArray[i].geometry.boundingSphere;
+            bSphere = this.objArray[i].geometry.boundingSphere;            
 
-            xToward = false;
-            yToward = false;
-            zToward = false;
-
-            if(bBox.containsPoint(point) && bSphere.containsPoint(point))
+            if(this.collisionArray.indexOf(bBox) == -1 && bBox.containsPoint(point) && bSphere.containsPoint(point))
             {
-                xDist = Math.abs(point.x - bSphere.center.x);
-                if(dir.x >= 0 && bSphere.center.x - point.x < 0 || dir.x < 0 && bSphere.center.x - point.x >= 0)
-                    xToward = true;
-
-                yDist = Math.abs(point.y - bSphere.center.y);
-                if(dir.y >= 0 && bSphere.center.y - point.y < 0 || dir.y < 0 && bSphere.center.y - point.y >= 0)
-                    yToward = true;
-
-                zDist = Math.abs(point.z - bSphere.center.z);
-                if(dir.z >= 0 && bSphere.center.z - point.z < 0 || dir.z < 0 && bSphere.center.z - point.z >= 0)
-                    zToward = true;
-
-                if(xDist > yDist && xDist > zDist && xToward)
+                if((point.x >= bSphere.center.x && dir.x <= 0 || point.x <= bSphere.center.x && dir.x >= 0))
+                {
                     dir.x *= -1;
-                else if(yDist > xDist && yDist > zDist && yToward)
+                    //bounced = true;
+                }
+                if(!bounced && (point.y >= bSphere.center.y && dir.y <= 0 || point.y <= bSphere.center.y && dir.y >= 0))
+                {    
                     dir.y *= -1;
-                else if(zToward)
+                    //bounced = true;
+                }
+                if(!bounced && (point.z >= bSphere.center.z && dir.z <= 0 || point.z <= bSphere.center.z && dir.z >= 0))
+                {
                     dir.z *= -1;
-                // if((point.x >= bSphere.center.x && dir.x <= 0 || point.x <= bSphere.center.x && dir.x >= 0))
-                // {
-                //     dir.x *= -1;
-                //     bounced = true;
-                // }
-                // if(!bounced && (point.y >= bSphere.center.y && dir.y <= 0 || point.y <= bSphere.center.y && dir.y >= 0))
-                // {    
-                //     dir.y *= -1;
-                //     bounced = true;
-                // }
-                // if(!bounced && (point.z >= bSphere.center.z && dir.z <= 0 || point.z <= bSphere.center.z && dir.z >= 0))
-                // {
-                //     dir.z *= -1;
-                //     bounced = true;
-                // }
+                    bounced = true;
+                }
+
+                // if(bounced)
+                //     this.collisionArray.push(bBox);
             }
         }
     }
@@ -180,7 +164,10 @@ class ParticleSimulator
         for(var i = 0; i < this.count; i++)
         {
             this.particles[i].update(delta);
+            if(this.particles[i].collisionArray.length != 0)
+                console.log(this.particles[i].collisionArray.length);
         }
+        
     }
 }
 
