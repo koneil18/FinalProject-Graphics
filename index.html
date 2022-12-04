@@ -68,14 +68,12 @@
             }
         });
 
-        function render(time) {
-            
+        function animate(time) {
+            requestAnimationFrame(animate);
             TWEEN.update(time);
-     
             renderer.render(scene, camera);
-            requestAnimationFrame(render);
         }
-        render();
+        animate();
     </script>
 </body>
 </html>

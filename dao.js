@@ -84,7 +84,6 @@ class CheckerPiece {
      * @param {THREE.Vector3} newPos The new position to move the piece to. 
      */
     movePosition(newPos) {
-        // Probably need to tween here.
         this.mesh.position.set(newPos.x, newPos.y, newPos.z);
     }
 }
@@ -96,7 +95,8 @@ class CheckerPiece {
 class GameBoard {
     pieceKeeperArray = Array.from(Array(8), () => new Array(8));
     tilesArray = null
-    worldCoordinateToArrayIndexMap = new Map();
+    worldCoordinateToPointMap = new Map();
+    pointToWorldCoordinateMap = new Map();
     scene = null;
     redWinnerCount = 0;
     blackWinnerCount = 0;
@@ -150,8 +150,10 @@ class GameBoard {
                 x += 1;
                 var currentPos = new THREE.Vector3(x, y, z);
 
-                this.worldCoordinateToArrayIndexMap.set(JSON
+                this.worldCoordinateToPointMap.set(JSON
                     .stringify(currentPos), new Point(j, i));
+                this.pointToWorldCoordinateMap.set(JSON.stringify(
+                    new Point(j, i)), currentPos);
 
                 const material = new THREE.MeshPhongMaterial({
                     side: THREE.DoubleSide,
@@ -221,7 +223,7 @@ class GameBoard {
                     pos.x++;
                 }
 
-                var arrayPoint = this.worldCoordinateToArrayIndexMap
+                var arrayPoint = this.worldCoordinateToPointMap
                     .get(JSON.stringify(pos));
 
                 var piece = new CheckerPiece('black', pos, this.boardGroup);
@@ -241,7 +243,7 @@ class GameBoard {
                     pos.x++;
                 }
 
-                var arrayPoint = this.worldCoordinateToArrayIndexMap
+                var arrayPoint = this.worldCoordinateToPointMap
                     .get(JSON.stringify(pos));
 
                 var piece = new CheckerPiece('red', pos, this.boardGroup);
@@ -254,11 +256,12 @@ class GameBoard {
     }
 
     async handleClick(position) {
-        var arrayPoint = this.worldCoordinateToArrayIndexMap.get(JSON
+        var arrayPoint = this.worldCoordinateToPointMap.get(JSON
             .stringify(position));
         const selectedPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
 
         const clearHighlightedTileList = () => {
+            this.highlightedPointList = [];
             while (this.highlightedTileList.length > 0) {
                 var currentTile = this.highlightedTileList.pop();
                 this.scene.remove(currentTile);
@@ -298,7 +301,6 @@ class GameBoard {
                     .currentTurn && this.tilesArray[startX][startZ] !=
                         undefined) {
                     clearHighlightedTileList();
-
                     if (this.currentTurn == 'red') {
                         if (inBounds(startX - 1, startZ - 1)) {
                             var diagLeft = this
@@ -348,7 +350,7 @@ class GameBoard {
                     } else {
                         if (inBounds(startX - 1, startZ + 1)) {
                             var diagLeft = this
-                            .pieceKeeperArray[startX - 1][startZ + 1];
+                                .pieceKeeperArray[startX - 1][startZ + 1];
                             if (diagLeft == undefined) {
                                 posList.push(new Point(startX - 1, startZ + 1));
                             } else if (diagLeft.color != this.currentTurn) {
@@ -412,21 +414,42 @@ class GameBoard {
             return this.pieceKeeperArray[midX][midY];
         }
 
-        if (this.originalPieceToMove != null) {
+        const isHighlightedPointSelected = (selectedPoint) => {
+            for (const point of this.highlightedPointList) {
+                if (point.x == selectedPoint.x && point.z == selectedPoint.z) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if (this.originalPieceToMove != null && 
+                isHighlightedPointSelected(arrayPoint)) {
             // Get the piece in between the point selected and the move-to pos.
             var midPointPiece = getMidPointPiece(this.originalPieceToMove
                 .boardPosition.x, this.originalPieceToMove.boardPosition
                 .z, arrayPoint.x, arrayPoint.z);
             
+            var doJumpAnimation = (midPointPiece != null);
+            this.originalPieceToMove.movePosition(this
+                .pointToWorldCoordinateMap.get(JSON
+                .stringify(arrayPoint)), doJumpAnimation);
+            this.pieceKeeperArray[arrayPoint.x][arrayPoint.z] = this
+                .originalPieceToMove;
+            clearHighlightedTileList();
+            this.originalPieceToMove = null;
+
             // If the piece found was not null, AKA it was a jump, move the 
             // taken piece.
             if (midPointPiece != null) {
                 await midPointPiece.removeFromGame(this.currentTurn);
             }
 
-            this.originalPieceToMove = null;
-            clearHighlightedTileList();
-            this.rotateTurn();
+            // Check for a winner, otherwise rotate the turn to the other player.
+            if (!this.checkForWinner()) {
+                // await this.rotateTurn();
+            }
         } else {
             highlightValidMoves();
             this.originalPieceToMove = selectedPiece;
@@ -513,7 +536,7 @@ class PieceKeeper {
     constructor(worldPosition, boardPosition, piece) {
         this.worldPosition = worldPosition;
         this.boardPosition = boardPosition;
-        this.piece = piece;
+        this.pieceList.push(piece);
         this.color = piece.color;
     }
 
@@ -544,14 +567,65 @@ class PieceKeeper {
         this.boardPosition = null;
     }
 
-    movePosition(position) {
-        this.pieceList.forEach((piece) => {
-            piece.movePosition(position)
-        });
+    movePosition(position, doJumpAnimation) {
+        const totalAnimationTime = 1000;
+        return new Promise((resolve, reject) => {
+            const startPos = {
+                x: this.worldPosition.x,
+                y: this.worldPosition.y,
+                z: this.worldPosition.z
+            };
+            const endPos = {
+                x: position.x,
+                y: position.y,
+                z: position.z
+            };
 
-        this.worldPosition = position;
-        this.boardPosition = this.worldCoordinateToArrayIndexMap.get(
-            JSON.stringify(position));
+            if (doJumpAnimation) {
+                const midPos = {
+                    x: (startPos.x + endPos.x) / 2,
+                    y: 1,
+                    z: (startPos.z + endPos.z) / 2
+                };
+                new TWEEN.Tween(startPos)
+                    .to(midPos, totalAnimationTime / 2)
+                    .onUpdate((currentPos) => {
+                        this.pieceList.forEach((piece) => {
+                            piece.movePosition(new THREE.Vector3(currentPos
+                                .x, currentPos.y, currentPos.z));
+                        });
+                    })
+                    .onComplete(() => {
+                        new TWEEN.Tween(midPos)
+                            .to(endPos, totalAnimationTime / 2)
+                            .onUpdate((currentPos) => {
+                                this.pieceList.forEach((piece) => {
+                                    piece.movePosition(new THREE
+                                        .Vector3(currentPos.x, currentPos
+                                        .y, currentPos.z));
+                                });
+                            })
+                            .onComplete(resolve())
+                            .start();
+                    })
+                    .start();
+            } else {
+                new TWEEN.Tween(startPos)
+                    .to(endPos, totalAnimationTime)
+                    .onUpdate((currentPos) => {
+                        this.pieceList.forEach((piece) => {
+                            piece.movePosition(new THREE.Vector3(currentPos
+                                .x, currentPos.y, currentPos.z))
+                        });
+                    })
+                    .onComplete(() => {
+                        this.worldPosition = position;
+                        resolve();
+                    })
+                    .start();
+            }
+        });
+        
     }
 }
 
