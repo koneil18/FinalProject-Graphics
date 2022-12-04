@@ -63,15 +63,22 @@
             }
         });
 
+        var prevTime, time, delta;
+
         function render(time) {
-            time = 0.15;
-            TWEEN.update(time);
-            ps.particles.update(time);
+            time = performance.now();
+            delta = (time - prevTime) / 1000;
+
+            TWEEN.update(delta);
+            ps.update(delta);
             renderer.render(scene, camera);
             requestAnimationFrame(render);
+
+            prevTime = time;
         }
 
-        const ps = new ParticleSimulator(scene, gameBoard.allObjects, atticDimensions);
+        const ps = new ParticleSimulator(scene, atticDimensions, gameBoard.allObjects);
+        prevTime = performance.now();
         render();
     </script>
 </body>

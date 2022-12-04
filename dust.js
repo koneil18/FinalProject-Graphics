@@ -8,40 +8,33 @@
 
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
 
-class Particles
+class Particle
 {
-    constructor(scene, count, bounds, objArray)
+    constructor(scene, bounds, objArray)
     {
         this.scene = scene;
         this.bounds = bounds;
         this.objArray = objArray;
 
-        this.geometry = new THREE.OctahedronGeometry(0.02, 2);
-        this.material = new THREE.MeshPhongMaterial({color: 0xd2b48c});
+        this.geometry = new THREE.OctahedronGeometry(0.02 * 10, 2);
+        this.material = new THREE.MeshPhongMaterial({color: /*0xd2b48c*/ 'blue'});
 
-        this.particles = [];        
-        this.directions = [];
-        this.speeds = [];
+        this.mesh = new THREE.Mesh(this.geometry.clone(), this.material.clone());
+        scene.add(this.mesh);
 
-        var maxSpeed = 0.05;
-        var minSpeed = 0.025;
+        this.direction = (new THREE.Vector3(Math.random() * this.posOrNeg(), Math.random() * this.posOrNeg(), 
+                                            Math.random() * this.posOrNeg())).normalize();
 
-        for(var i = 0; i < count; i++)
-        {
-            this.particles.push(new THREE.Mesh(this.geometry.clone(), this.material.clone()));
-            scene.add(this.particles[i]);
+        var maxSpeed = 0.035;
+        var minSpeed = 0.015;
+        this.speed = this.random(minSpeed, maxSpeed);
+    }
 
-            this.directions.push((new THREE.Vector3(Math.random() * this.posOrNeg(), Math.random() * this.posOrNeg(), 
-                                                    Math.random() * this.posOrNeg())).normalize());
-            this.speeds.push(this.random(maxSpeed, minSpeed));
-        }
-
-        for(var i = 0; i < this.particles.length; i++)
-        {
-            this.particles[i].position.setX(this.random(bounds.min.x, bounds.max.x));
-            this.particles[i].position.setY(this.random(0, bounds.max.y));
-            this.particles[i].position.setZ(this.random(bounds.min.z, bounds.max.z));
-        }
+    randomizeLocation()
+    {
+        this.mesh.position.setX(this.random(this.bounds.min.x, this.bounds.max.x));
+        this.mesh.position.setY(this.random(0, this.bounds.max.y));
+        this.mesh.position.setZ(this.random(this.bounds.min.z, this.bounds.max.z));
     }
 
     posOrNeg()
@@ -51,25 +44,26 @@ class Particles
 
     random(min, max)
     {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
+        return (Math.random() * (max - min + 1)) + min;
     }
 
     update(delta)
     {
-        for(var i = 0; i < this.particles.length; i++)
-        {
-            this.particles[i].translateOnAxis(this.directions[i], this.speeds[i] * delta);
-            this.directions[i].add(new THREE.Vector3(this.posOrNeg() * Math.random() / 10, 
-                                                     this.posOrNeg() * Math.random() / 10, 
-                                                     this.posOrNeg() * Math.random() / 10));
-            this.rebound(this.particles[i].position, i);
-            this.collide(this.particles[i].position, i);
-        }
+        this.mesh.translateOnAxis(this.direction, this.speed * delta);
+
+        this.rebound(this.mesh.position);
+        this.collide(this.mesh.position);
+        
+        // this.direction.add(new THREE.Vector3(this.posOrNeg() * Math.random() / 10, 
+        //                                             this.posOrNeg() * Math.random() / 10, 
+        //                                             this.posOrNeg() * Math.random() / 10));
+
+        this.direction.normalize();
     }
 
-    rebound(point, index)
+    rebound(point)
     {
-        var dir = this.directions[index];
+        var dir = this.direction;
         var max = this.bounds.max;
         var min = this.bounds.min;
 
@@ -81,13 +75,64 @@ class Particles
             dir.z *= -1;
     }
 
-    collide(point, index)
+    collide(point)
     {
+        var dir = this.direction;
+        
+        var bBox;
+            
+        var bSphere;
+
+        var xDist, yDist, zDist;
+        var xToward, yToward, zToward;
+
         for(var i = 0; i < this.objArray.length; i++)
         {
-            if(this.objArray[i].geometry.boundingBox.containsPoint(point) &&
-                this.objArray[i].geometry.boundingSphere.containsPoint(point))
-                this.speeds[index] = 0;
+            var bounced = false;
+            bBox = this.objArray[i].geometry.boundingBox;
+            
+            bSphere = this.objArray[i].geometry.boundingSphere;
+
+            xToward = false;
+            yToward = false;
+            zToward = false;
+
+            if(bBox.containsPoint(point) && bSphere.containsPoint(point))
+            {
+                xDist = Math.abs(point.x - bSphere.center.x);
+                if(dir.x >= 0 && bSphere.center.x - point.x < 0 || dir.x < 0 && bSphere.center.x - point.x >= 0)
+                    xToward = true;
+
+                yDist = Math.abs(point.y - bSphere.center.y);
+                if(dir.y >= 0 && bSphere.center.y - point.y < 0 || dir.y < 0 && bSphere.center.y - point.y >= 0)
+                    yToward = true;
+
+                zDist = Math.abs(point.z - bSphere.center.z);
+                if(dir.z >= 0 && bSphere.center.z - point.z < 0 || dir.z < 0 && bSphere.center.z - point.z >= 0)
+                    zToward = true;
+
+                if(xDist > yDist && xDist > zDist && xToward)
+                    dir.x *= -1;
+                else if(yDist > xDist && yDist > zDist && yToward)
+                    dir.y *= -1;
+                else if(zToward)
+                    dir.z *= -1;
+                // if((point.x >= bSphere.center.x && dir.x <= 0 || point.x <= bSphere.center.x && dir.x >= 0))
+                // {
+                //     dir.x *= -1;
+                //     bounced = true;
+                // }
+                // if(!bounced && (point.y >= bSphere.center.y && dir.y <= 0 || point.y <= bSphere.center.y && dir.y >= 0))
+                // {    
+                //     dir.y *= -1;
+                //     bounced = true;
+                // }
+                // if(!bounced && (point.z >= bSphere.center.z && dir.z <= 0 || point.z <= bSphere.center.z && dir.z >= 0))
+                // {
+                //     dir.z *= -1;
+                //     bounced = true;
+                // }
+            }
         }
     }
 }
@@ -99,30 +144,43 @@ class ParticleSimulator
      * the scene.
      * 
      * @param {Scene} scene The scene of the program.
-     * @param {[Mesh, Mesh, ...]} objArray The array of objects in the scene.
      * @param {Box3} bounds The bounds of the dust.
+     * @param {[Mesh, Mesh, ...]} objArray The array of objects in the scene.
      */
-    constructor(scene, objArray, bounds)
+    constructor(scene, bounds, objArray)
     {
         this.scene = scene;
-        this.objArray = objArray;
         this.bounds = bounds;
+        this.objArray = objArray;
+        this.count = 1000;
 
         for(var i = 0; i < objArray.length; i++)
         {
-            objArray[i].geometry.computeBoundingBox();
-            objArray[i].geometry.boundingBox.applyMatrix4(objArray[i].matrixWorld);
+            var obj = objArray[i];
+            var offset = obj.position.clone().sub(new THREE.Vector3(0, 0, 0));
+            
+            obj.geometry.computeBoundingBox();
+            obj.geometry.boundingBox.min.add(offset);
+            obj.geometry.boundingBox.max.add(offset);
 
-            objArray[i].geometry.computeBoundingSphere();
-            objArray[i].geometry.boundingSphere.applyMatrix4(objArray[i].matrixWorld);
+            obj.geometry.computeBoundingSphere();
+            obj.geometry.boundingSphere.center.add(offset);
         }
 
-        this.particles = new Particles(scene, 1000, bounds, objArray);
+        this.particles = [];
+        for(var i = 0; i < this.count; i++)
+        {
+            this.particles.push(new Particle(scene, bounds, objArray));
+            this.particles[i].randomizeLocation();
+        }
     }
 
     update(delta)
     {
-        this.particles.update(delta);
+        for(var i = 0; i < this.count; i++)
+        {
+            this.particles[i].update(delta);
+        }
     }
 }
 
