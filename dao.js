@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
 
 /*
 *
@@ -102,10 +102,12 @@ class GameBoard {
     blackWinnerCount = 0;
     currentTurn = 'red';
     validMovesVisible = false;
-    highlightedTileList = [];
+    highlightedPointList = [];
     currentSelectedPieceKeeper = null;
     boardGroup = null;
     cameraAngle = 0;
+    originalPieceToMovePosition = null;
+    highlightedTileList = [];
 
     constructor(scene, camera) {
         this.scene = scene;
@@ -113,12 +115,8 @@ class GameBoard {
         this.tilesArray = this.buildBoard();
         this.initPieces();
 
-        this.rotationTest();
-    }
-
-    async rotationTest() {
-        await this.rotateTurn();
-        // await this.rotateTurn();
+        var blackPieceAtZero = this.pieceKeeperArray[0][0];
+        this.pieceKeeperArray[1][4] = blackPieceAtZero;
     }
     /**
      * Linearizes the 2D Array of meshes into a single dimension array.
@@ -255,83 +253,183 @@ class GameBoard {
         }
     }
 
-    handleClick(position) {
+    async handleClick(position) {
         var arrayPoint = this.worldCoordinateToArrayIndexMap.get(JSON
             .stringify(position));
-        const highlightValidMoves = () => {
-            var pieceKeeperObj = this
-                .pieceKeeperArray[arrayPoint.x][arrayPoint.z];
+        const selectedPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
 
-            const highlightTile = (tile) => {
+        const clearHighlightedTileList = () => {
+            while (this.highlightedTileList.length > 0) {
+                var currentTile = this.highlightedTileList.pop();
+                this.scene.remove(currentTile);
+            }
+        };
+
+        const highlightValidMoves = () => {
+
+            const highlightTile = (coord) => {
+                const tile = this.tilesArray[coord.x][coord.z];
                 const edges = new THREE.EdgesGeometry(tile.geometry);
                 const outline = new THREE.LineSegments(edges, new THREE
                     .LineBasicMaterial({ color: 'white' }));
                 outline.position.set(tile.position.x, tile.position.y, tile
                     .position.z);
                 this.scene.add(outline);
+                this.highlightedPointList.push(coord);
                 this.highlightedTileList.push(outline);
             };
 
-            const clearHighlightedTileList = () => {
-                while (this.highlightedTileList.length > 0) {
-                    var currentTile = this.highlightedTileList.pop();
-                    this.scene.remove(currentTile);
+            const inBounds = (x, z) => {
+                if (this.pieceKeeperArray[x] == undefined) {
+                    return false;
+                } else {
+                    if ((x >= 0 && x <= 7) && (z >= 0 && z <= 7)) {
+                        return true;
+                    }
                 }
-            };
+            }
 
             var startX = arrayPoint.x, startZ = arrayPoint.z;
-
-            // const detectValidMoves = (x, z) => {
-            //     const inBounds = (x, z) => {
-            //         retu
-            //     }
-            // };
 
             var posList = [];
             const selectedPiece = this.pieceKeeperArray[startX][startZ];
             if (selectedPiece != undefined) {
                 if (this.tilesArray[startX][startZ].tileColor == this
                     .currentTurn && this.tilesArray[startX][startZ] !=
-                    undefined) {
+                        undefined) {
                     clearHighlightedTileList();
 
-                    if (this.currentTurn == 'black') {
-                        var diagLeft = this
+                    if (this.currentTurn == 'red') {
+                        if (inBounds(startX - 1, startZ - 1)) {
+                            var diagLeft = this
                             .pieceKeeperArray[startX - 1][startZ - 1];
-                        if (diagLeft == undefined) {
-                            posList.push(new Point(startX - 1, startZ - 1));
-                        } else if (diagLeft.color != this.currentTurn) {
-                            var diag2Left = this
-                                .pieceKeeperArray[startX - 2][startZ - 2];
-                            if (diag2Left == undefined) {
-                                posList.push(new Point(startX - 2, startZ - 2));
+                            if (diagLeft == undefined) {
+                                posList.push(new Point(startX - 1, startZ - 1));
+                            } else if (diagLeft.color != this.currentTurn) {
+                                var diag2Left = this
+                                    .pieceKeeperArray[startX - 2][startZ - 2];
+                                if (diag2Left == undefined) {
+                                    posList.push(new Point(startX - 2, startZ - 2));
+                                }
+                            }
+                        }
+                        
+                        if (inBounds(startX + 1, startZ - 1)) {
+                            var diagRight = this
+                                .pieceKeeperArray[startX + 1][startZ - 1];
+                            if (diagRight == undefined) {
+                                posList.push(new Point(startX + 1, startZ - 1));
+                            } else if (diagRight.color != this.currentTurn) {
+                                var diag2Right = this
+                                    .pieceKeeperArray[startX - 2][startZ - 2];
+                                if (diag2Right == undefined) {
+                                    posList.push(new Point(startX - 2, startZ - 2));
+                                }
                             }
                         }
 
-                        var diagRight = this
-                            .pieceKeeperArray[startX + 1][startZ - 1];
-                        if (diagRight == undefined) {
-                            posList.push(new Point(startX + 1, startZ - 2));
-                        } else if (diagRight.color != this.currentTurn) {
-                            var diag2Right = this
-                                .pieceKeeperArray[startX - 2][startZ - 2];
-                            if (diag2Right == undefined) {
-                                posList.push(new Point(startX + 2, startZ - 2));
+                        if (this.pieceKeeperArray[startX][startZ].isKing) {
+                            if (inBounds(startX - 1, startZ + 1)) {
+                                var behindLeft = this
+                                    .pieceKeeperArray[startX - 1][startZ + 1];
+                                if (behindLeft == undefined) {
+                                    posList.push(new Point(startX - 1, startZ + 1));
+                                }
+                            }
+
+                            if (inBounds(startX + 1, startZ + 1)) {
+                                var behindRight = this
+                                    .pieceKeeperArray[startX + 1][startZ + 1];
+                                if (behindRight == undefined) {
+                                    posList.push(new Point(startX + 1, startZ + 1));
+                                }
+                            }
+                        }
+                    } else {
+                        if (inBounds(startX - 1, startZ + 1)) {
+                            var diagLeft = this
+                            .pieceKeeperArray[startX - 1][startZ + 1];
+                            if (diagLeft == undefined) {
+                                posList.push(new Point(startX - 1, startZ + 1));
+                            } else if (diagLeft.color != this.currentTurn) {
+                                var diag2Left = this
+                                    .pieceKeeperArray[startX - 2][startZ + 2];
+                                if (diag2Left == undefined) {
+                                    posList.push(new Point(startX - 2, startZ + 2));
+                                }
+                            }
+                        }
+
+                        if (inBounds(startX + 1, startZ + 1)) {
+                            var diagRight = this
+                                .pieceKeeperArray[startX + 1][startZ + 1];
+                            if (diagRight == undefined) {
+                                posList.push(new Point(startX + 1, startZ + 1));
+                            } else if (diagRight.color != this.currentTurn) {
+                                var diag2Right = this
+                                    .pieceKeeperArray[startX - 2][startZ + 2];
+                                if (diag2Right == undefined) {
+                                    posList.push(new Point(startX - 2, startZ + 2));
+                                }
+                            }
+                        }
+
+                        if (this.pieceKeeperArray[startX][startZ].isKing) {
+                            if (inBounds(startX - 1, startZ - 1)) {
+                                var behindLeft = this
+                                    .pieceKeeperArray[startX - 1][startZ - 1];
+                                if (behindLeft == undefined) {
+                                    posList.push(new Point(startX - 1, startZ - 1));
+                                }
+                            }
+
+                            if (inBounds(startX + 1, startZ - 1)) {
+                                var behindRight = this
+                                    .pieceKeeperArray[startX + 1][startZ - 1];
+                                if (behindRight == undefined) {
+                                    posList.push(new Point(startX + 1, startZ - 1));
+                                }
                             }
                         }
                     }
-                    for (var point of this.highlightedTileList) {
-                        console.log(point);
+
+                    for (var point of posList) {
+                        highlightTile(point);
                     }
                 }
             }
         };
 
-        if (this.validMovesVisible) {
-            // Move the piece the user originally selected.
+        const getMidPointPiece = (x1, y1, x2, y2) => {
+            var midX = (x1 + x2) / 2,
+                midY = (y1 + y2) / 2;
+
+            if (midX - Math.floor(midX) !== 0 || midY - Math
+                .floor(midY) !== 0) {
+                return null;
+            }
+            
+            return this.pieceKeeperArray[midX][midY];
+        }
+
+        if (this.originalPieceToMove != null) {
+            // Get the piece in between the point selected and the move-to pos.
+            var midPointPiece = getMidPointPiece(this.originalPieceToMove
+                .boardPosition.x, this.originalPieceToMove.boardPosition
+                .z, arrayPoint.x, arrayPoint.z);
+            
+            // If the piece found was not null, AKA it was a jump, move the 
+            // taken piece.
+            if (midPointPiece != null) {
+                await midPointPiece.removeFromGame(this.currentTurn);
+            }
+
+            this.originalPieceToMove = null;
+            clearHighlightedTileList();
+            this.rotateTurn();
         } else {
             highlightValidMoves();
-
+            this.originalPieceToMove = selectedPiece;
         }
     }
 
@@ -419,6 +517,10 @@ class PieceKeeper {
         this.color = piece.color;
     }
 
+    isKing() {
+        return this.isKing;
+    }
+
     makeKing(piece) {
         this.isKing = true;
         this.pieceList.push(piece);
@@ -435,15 +537,21 @@ class PieceKeeper {
 
     removeFromGame(winningPlayer) {
         var movePos = winningPlayerLocations[winningPlayer]
-        this.pieceList.forEach((piece) => {
-            piece.movePosition(movePos)
+        this.pieceList.forEach(async (piece) => {
+            await piece.movePosition(movePos)
         });
+        this.worldPosition = movePos;
+        this.boardPosition = null;
     }
 
     movePosition(position) {
         this.pieceList.forEach((piece) => {
             piece.movePosition(position)
         });
+
+        this.worldPosition = position;
+        this.boardPosition = this.worldCoordinateToArrayIndexMap.get(
+            JSON.stringify(position));
     }
 }
 
