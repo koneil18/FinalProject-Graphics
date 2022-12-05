@@ -108,9 +108,11 @@ class GameBoard {
     boardGroup = null;
     cameraAngle = 0;
 
-    constructor(scene, camera) {
+    constructor(scene, camera, burstHandler) {
         this.scene = scene;
         this.camera = camera;
+        this.burstHandler = burstHandler;
+
         this.tilesArray = this.buildBoard();
         this.initPieces();
 

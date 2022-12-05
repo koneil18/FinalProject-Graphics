@@ -291,13 +291,15 @@ class ParticleSimulator
      * @param {Scene} scene The scene of the program.
      * @param {Box3} bounds The bounds of the dust.
      * @param {[Mesh, Mesh, ...]} objArray The array of objects in the scene.
+     * @param {BurstHandler} burstHandler The handler for air bursts.
      */
-    constructor(scene, bounds, objArray)
+    constructor(scene, bounds, objArray, burstHandler)
     {
         // Stores the passed arguments.
         this.scene = scene;
         this.bounds = bounds;
         this.objArray = objArray;
+        this.burstHandler = burstHandler;
 
         // count stores the number of particles to create.
         this.count = 3000;
@@ -340,19 +342,68 @@ class ParticleSimulator
      * This function handles updating all the particles in the scene per frame.
      * 
      * @param {Number} delta The time since the last frame.
-     * @param {*} sphereToggle 
      */
-    update(delta, sphereToggle)
+    update(delta)
     {
-        var bSphere = new THREE.Sphere(new THREE.Vector3(-2.5, 0, -2.5), 10);
+        var currBursts = this.burstHandler.getBursts();
+
         // Updates every particlein the array.
         for(var i = 0; i < this.particles.length; i++)
         {
             this.particles[i].update(delta, this.bounds, this.objArray);
-            if(sphereToggle && bSphere.containsPoint(this.particles[i].mesh.position))
-                this.particles[i].moveAwayFrom(bSphere);
+
+            for(var j = 0; j < currBursts.length; j++)
+            {
+                if(currBursts[j].containsPoint(this.particles[i].mesh.position))
+                    this.particles[i].moveAwayFrom(currBursts[j]);
+            }
         }
     }
 }
 
-export {ParticleSimulator};
+class BurstHandler
+{
+    constructor(timeLimit=500, radius=10)
+    {
+        this.activeBursts = new Map();
+        this.timeLimit = timeLimit;
+        this.radius = radius;
+    }
+
+    add(loc)
+    {
+        this.activeBursts.set(new THREE.Sphere(loc, this.radius), performance.now());
+    }
+
+    getBursts()
+    {
+        var retList = [];
+
+        var iterator = this.activeBursts.keys();
+        var currEntry = iterator.next().value;
+
+        while(currEntry != undefined)
+        {
+            retList.push(currEntry);
+            currEntry = iterator.next().value;
+        }
+    
+        return retList;
+    }
+
+    update()
+    {
+        var iterator = this.activeBursts.entries();
+        var currEntry = iterator.next().value;
+
+        while(currEntry != undefined)
+        {
+            if(performance.now() - currEntry[1] >= this.timeLimit)
+                this.activeBursts.delete(currEntry[0]);
+
+            currEntry = iterator.next().value;
+        }          
+    }
+}
+
+export {ParticleSimulator, BurstHandler};
