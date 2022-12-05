@@ -370,19 +370,28 @@ class GameBoard {
             const tween = new TWEEN.Tween({angle: this.cameraAngle})
                 .to({angle: this.cameraAngle + 180}, 2000)
                 .onUpdate((angle) => {
-                    console.log(angle.angle);
+                    // Gets the vector to compare to.
+                    var posVec = (this.currentTurn == 'red') ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 0, -1);
+                    // Gets the normalized current position.
+                    var currPos = this.camera.position.clone().setY(0).normalize();
+
+                    // Gets the ratio of the current position to the destination.
+                    var ratio = posVec.angleTo(currPos) / (Math.PI);
+                    // Gets the ratio in degrees.
+                    var currDeg = ratio * 180;
+
                     this.cameraAngle = angle.angle;
+
                     rotateAboutWorldAxis(this.camera, new THREE
                         .Vector3(0, 1, 0), THREE.MathUtils
-                        .degToRad(angle.angle)); 
+                        // Gets how far it should rotate to get the desired current angle.
+                        .degToRad(angle.angle - currDeg)); 
                 })
                 .onComplete(() => {
                     // Flip the current turn.
                     this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
 
-                    if (this.cameraAngle == 360) {
-                        this.cameraAngle = 0;
-                    }
+                    this.cameraAngle %= 360;
 
                     resolve();
                 });
