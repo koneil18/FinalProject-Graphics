@@ -17,6 +17,8 @@ const blackTexture = new THREE.TextureLoader()
  * A class for a single CheckerPiece.
  */
 class CheckerPiece {
+
+    
     /**
      * The geometry for each piece.
      */
@@ -389,6 +391,9 @@ class GameBoard {
             tween.start();
         });
     }
+
+    
+
 }
 
 class Point {
@@ -430,11 +435,21 @@ class PieceKeeper {
         });
     }
 
-    removeFromGame(winningPlayer) {
-        var movePos = winningPlayerLocations[winningPlayer]
-        this.pieceList.forEach((piece) => {
-            piece.movePosition(movePos)
+    removeFromGame(pieceObjList) {
+        
+        return new Promise((resolve, reject) => {     
+        if (this.piece.color == 'red'){
+            const tween = new TWEEN.Tween(this.piece)
+                    .to({x: -2, y: 0, z: 4}, 2000)
+                tween.start();
+            }
+        if (this.piece.color == 'black'){
+                const tween = new TWEEN.Tween(this.piece)
+                        .to({x: 10, y: 0, z: 4}, 2000)
+                    tween.start();
+            }
         });
+        
     }
 
     movePosition(position) {
