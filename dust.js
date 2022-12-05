@@ -3,11 +3,14 @@
  * Fall 2022
  * CSC 3210
  * 
- * This file implements 
+ * This file implements the particle system for the project. 
  */
 
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
 
+/**
+ * This class 
+ */
 class Particle
 {
     constructor(scene, bounds, objArray)
@@ -37,7 +40,7 @@ class Particle
     randomizeLocation(bounds)
     {
         this.mesh.position.setX(this.random(bounds.min.x, bounds.max.x));
-        this.mesh.position.setY(this.random(0, bounds.max.y));
+        this.mesh.position.setY(this.random(0, bounds.max.y / 3));
         this.mesh.position.setZ(this.random(bounds.min.z, bounds.max.z));
     }
 
@@ -170,7 +173,18 @@ class Particle
 
     moveAwayFrom(bSphere)
     {
-        var speedMult = Math.log(bSphere.center.clone().sub(this.mesh.position).length());
+        var changeVector = this.mesh.position.clone().sub(bSphere.center);
+        var speedMult = (0.3 - Math.log(changeVector.length()) / 5);
+
+        if(speedMult < 0)
+            speedMult = 0;
+        else if(speedMult > 5)
+            speedMult = 5;
+        
+        changeVector.normalize();
+
+        this.direction.add(changeVector.multiplyScalar(speedMult));
+        this.tmpSpeed += speedMult;
     }
 }
 
@@ -207,25 +221,28 @@ class ParticleSimulator
 
         this.particles = [];
 
-        // for(var i = 0; i < this.count; i++)
-        // {
-        //     this.particles.push(new Particle(scene, bounds, objArray));
-        //     this.particles[i].randomizeLocation(this.bounds);
-        // }
+        for(var i = 0; i < this.count; i++)
+        {
+            this.particles.push(new Particle(scene, bounds, objArray));
+            this.particles[i].randomizeLocation(this.bounds);
+        }
 
-        this.particles.push(new Particle(scene, bounds, objArray));
+        // this.particles.push(new Particle(scene, bounds, objArray));
         
-        this.particles[0].mesh.position.set(-2.5, 0.5, -2.5);
-        this.particles[0].direction.set(1, 0, -1);
-        this.particles[0].direction.normalize();
-        this.particles[0].speed = 0.05;
+        // this.particles[0].mesh.position.set(-2.5, 0.5, -2.5);
+        // this.particles[0].direction.set(1, 0, -1);
+        // this.particles[0].direction.normalize();
+        // this.particles[0].speed = 0.025;
     }
 
-    update(delta)
+    update(delta, sphereToggle)
     {
+        var bSphere = new THREE.Sphere(new THREE.Vector3(-2.5, 0, -2.5), 10)
         for(var i = 0; i < this.particles.length; i++)
         {
             this.particles[i].update(delta, this.bounds, this.objArray);
+            if(sphereToggle && bSphere.containsPoint(this.particles[i].mesh.position))
+                this.particles[i].moveAwayFrom(bSphere);
         }
     }
 }

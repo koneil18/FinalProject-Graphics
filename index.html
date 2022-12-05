@@ -62,6 +62,22 @@
                 gameBoard.handleClick(clickPosition);
             }
         });
+        
+        var toggleSphere = false;
+
+        function keyHandler(e)
+        {
+            var key = e.key.toLowerCase();
+            switch(key)
+            {
+                // N case advances the fractal.
+                case "n":
+                    toggleSphere = !toggleSphere;
+                    break;
+            }
+        };
+        
+        document.addEventListener("keydown", keyHandler, false);
 
         var prevTime, time, delta;
 
@@ -70,7 +86,7 @@
             delta = (time - prevTime) / 1000;
 
             TWEEN.update(delta);
-            ps.update(delta);
+            ps.update(delta, toggleSphere);
             renderer.render(scene, camera);
             requestAnimationFrame(render);
 
