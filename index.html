@@ -12,6 +12,7 @@
 </head>
 <body>
     <canvas id = "myCanvas" width = window.innerWidth height = window.innerHeight></canvas>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js" integrity="sha512-lIKG1kC5TMb1Zx32vdz1n31YJMZRknVY20U9MJ28hD3y2c0OKN0Ce5NhJji78v8zX5UOSsm+MTBOcJt7yMBnSg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script type = "module">
         import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
         import { OrbitControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js';
@@ -41,7 +42,7 @@
 
         const rayCaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
-        const gameBoard = new GameBoard(scene);
+        const gameBoard = new GameBoard(scene, camera);
 
         // Found at: https://threejs.org/docs/#api/en/core/Raycaster
         document.addEventListener('mousedown', (event) => {
@@ -59,7 +60,8 @@
             }
         });
 
-        function render() {
+        function render(time) {
+            TWEEN.update(time);
             renderer.render(scene, camera);
             requestAnimationFrame(render);
         }
