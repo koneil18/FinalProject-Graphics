@@ -166,7 +166,6 @@ class GameBoard {
                 fillRed = !fillRed;
 
                 const mesh = new THREE.Mesh(geometry, material);
-                this.allObjects.push(mesh);
                 mesh.tileColor = currentColor;
                 meshesArray[j][i] = mesh;
                 mesh.position.set(currentPos.x, currentPos.y, currentPos.z);
