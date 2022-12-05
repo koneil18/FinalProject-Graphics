@@ -1,4 +1,4 @@
-import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import * as THREE from "three";
 
 /*
 *
@@ -7,6 +7,9 @@ const winningPlayerLocations = {
     'red': new THREE.Vector3(5, 0, 0),
     'black': new THREE.Vector3(-5, 0, 0)
 }
+
+const worldCoordinateToPointMap = new Map();
+const pointToWorldCoordinateMap = new Map();
 
 const redTexture = new THREE.TextureLoader()
     .load('assets/pieces/red_checker_piece.png');
@@ -95,8 +98,6 @@ class CheckerPiece {
 class GameBoard {
     pieceKeeperArray = Array.from(Array(8), () => new Array(8));
     tilesArray = null
-    worldCoordinateToPointMap = new Map();
-    pointToWorldCoordinateMap = new Map();
     scene = null;
     redWinnerCount = 0;
     blackWinnerCount = 0;
@@ -115,9 +116,10 @@ class GameBoard {
         this.tilesArray = this.buildBoard();
         this.initPieces();
 
-        var blackPieceAtZero = this.pieceKeeperArray[0][0];
-        this.pieceKeeperArray[1][4] = blackPieceAtZero;
+        // var blackPieceAtZero = this.pieceKeeperArray[0][0];
+        // this.pieceKeeperArray[1][4] = blackPieceAtZero;
     }
+
     /**
      * Linearizes the 2D Array of meshes into a single dimension array.
      * 
@@ -150,9 +152,9 @@ class GameBoard {
                 x += 1;
                 var currentPos = new THREE.Vector3(x, y, z);
 
-                this.worldCoordinateToPointMap.set(JSON
+                worldCoordinateToPointMap.set(JSON
                     .stringify(currentPos), new Point(j, i));
-                this.pointToWorldCoordinateMap.set(JSON.stringify(
+                pointToWorldCoordinateMap.set(JSON.stringify(
                     new Point(j, i)), currentPos);
 
                 const material = new THREE.MeshPhongMaterial({
@@ -223,7 +225,7 @@ class GameBoard {
                     pos.x++;
                 }
 
-                var arrayPoint = this.worldCoordinateToPointMap
+                var arrayPoint = worldCoordinateToPointMap
                     .get(JSON.stringify(pos));
 
                 var piece = new CheckerPiece('black', pos, this.boardGroup);
@@ -236,14 +238,14 @@ class GameBoard {
         rowCount = 0;
         // Add the red checkers.
         for (var z = 3.5; z >= 1.5; z--) {
-            for (var x = -3.5; x < 3.5; x += 2) {
+            for (var x = -2.5; x <= 3.5; x += 2) {
                 var pos = new THREE.Vector3(x, 0, z);
 
                 if (rowCount == 1) {
-                    pos.x++;
+                    pos.x--;
                 }
 
-                var arrayPoint = this.worldCoordinateToPointMap
+                var arrayPoint = worldCoordinateToPointMap
                     .get(JSON.stringify(pos));
 
                 var piece = new CheckerPiece('red', pos, this.boardGroup);
@@ -256,7 +258,7 @@ class GameBoard {
     }
 
     async handleClick(position) {
-        var arrayPoint = this.worldCoordinateToPointMap.get(JSON
+        var arrayPoint = worldCoordinateToPointMap.get(JSON
             .stringify(position));
         const selectedPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
 
@@ -297,35 +299,40 @@ class GameBoard {
             var posList = [];
             const selectedPiece = this.pieceKeeperArray[startX][startZ];
             if (selectedPiece != undefined) {
+                console.log('Selected piece was at: ', this.pieceKeeperArray[arrayPoint.x - 1][arrayPoint.z - 1]);
                 if (this.tilesArray[startX][startZ].tileColor == this
-                    .currentTurn && this.tilesArray[startX][startZ] !=
-                        undefined) {
+                    .currentTurn) {
                     clearHighlightedTileList();
                     if (this.currentTurn == 'red') {
-                        if (inBounds(startX - 1, startZ - 1)) {
+                        var diagLeftX = startX - 1, diagLeftZ = startZ - 1;
+                        if (inBounds(diagLeftX, diagLeftZ)) {
                             var diagLeft = this
-                            .pieceKeeperArray[startX - 1][startZ - 1];
+                                .pieceKeeperArray[diagLeftX][diagLeftZ];
                             if (diagLeft == undefined) {
-                                posList.push(new Point(startX - 1, startZ - 1));
+                                posList.push(new Point(diagLeftX, diagLeftZ));
                             } else if (diagLeft.color != this.currentTurn) {
+                                diagLeftX--, diagLeftZ--;
                                 var diag2Left = this
-                                    .pieceKeeperArray[startX - 2][startZ - 2];
+                                    .pieceKeeperArray[diagLeftX][diagLeftZ];
                                 if (diag2Left == undefined) {
-                                    posList.push(new Point(startX - 2, startZ - 2));
+                                    posList.push(new Point(diagLeftX, diagLeftZ));
                                 }
                             }
                         }
                         
-                        if (inBounds(startX + 1, startZ - 1)) {
+                        var diagRightX = startX + 1, diagRightZ = startZ - 1;
+                        if (inBounds(diagRightX, diagRightZ)) {
                             var diagRight = this
-                                .pieceKeeperArray[startX + 1][startZ - 1];
+                                .pieceKeeperArray[diagRightX][diagRightZ];
                             if (diagRight == undefined) {
-                                posList.push(new Point(startX + 1, startZ - 1));
+                                posList.push(new Point(diagRightX, diagRightZ));
                             } else if (diagRight.color != this.currentTurn) {
+                                diagRightX++, diagRightZ--;
+                                console.log('329, ', inBounds(diagRightX, diagRightZ));
                                 var diag2Right = this
-                                    .pieceKeeperArray[startX - 2][startZ - 2];
+                                    .pieceKeeperArray[diagRightX][diagRightZ];
                                 if (diag2Right == undefined) {
-                                    posList.push(new Point(startX - 2, startZ - 2));
+                                    posList.push(new Point(diagRightX, diagRightZ));
                                 }
                             }
                         }
@@ -432,9 +439,14 @@ class GameBoard {
                 .z, arrayPoint.x, arrayPoint.z);
             
             var doJumpAnimation = (midPointPiece != null);
-            this.originalPieceToMove.movePosition(this
-                .pointToWorldCoordinateMap.get(JSON
+            const removePoint = await this.originalPieceToMove
+                .movePosition(pointToWorldCoordinateMap.get(JSON
                 .stringify(arrayPoint)), doJumpAnimation);
+            console.log(removePoint);
+            this.pieceKeeperArray[removePoint.x][removePoint.z] = undefined;
+            // this.pieceKeeperArray[this.originalPieceToMove.boardPosition
+            //     .x][this.originalPieceToMove.boardPosition.z] = undefined;
+            console.log(this.pieceKeeperArray[removePoint.x][removePoint.z])
             this.pieceKeeperArray[arrayPoint.x][arrayPoint.z] = this
                 .originalPieceToMove;
             clearHighlightedTileList();
@@ -448,7 +460,7 @@ class GameBoard {
 
             // Check for a winner, otherwise rotate the turn to the other player.
             if (!this.checkForWinner()) {
-                // await this.rotateTurn();
+                await this.rotateTurn();
             }
         } else {
             highlightValidMoves();
@@ -461,11 +473,15 @@ class GameBoard {
 
         if (this.redWinnerCount == 12) {
             winningPlayer = 'Red';
+            return true;
         }
 
         if (this.blackWinnerCount == 12) {
             winningPlayer = 'Black';
+            return true;
         }
+
+        return false;
     }
 
     rotateTurn() {
@@ -485,32 +501,33 @@ class GameBoard {
 
         //Rotate the camera
         return new Promise((resolve, reject) => {
-            const clock = new THREE.Clock();
-            this.cameraAngle = 0;
-            const tween = new TWEEN.Tween({angle: this.cameraAngle})
-                .to({angle: this.cameraAngle + 180}, 2000)
-                .onUpdate((angle) => {
-                    // The angle between 0 and 180.
-                    var angleToRotate = angle.angle;
+            // const clock = new THREE.Clock();
+            // this.cameraAngle = 0;
+            // const tween = new TWEEN.Tween({angle: this.cameraAngle})
+            //     .to({angle: this.cameraAngle + 180}, 2000)
+            //     .onUpdate((angle) => {
+            //         // The angle between 0 and 180.
+            //         var angleToRotate = angle.angle;
 
-                    // Rotate the camera about the Y-axis, with the small angle
-                    // for this callback of the tween.
-                    rotateAboutWorldAxis(this.camera, new THREE
-                        .Vector3(0, 1, 0), THREE.MathUtils
-                        .degToRad(angleToRotate)); 
-                })
-                .onComplete(() => {
+            //         // Rotate the camera about the Y-axis, with the small angle
+            //         // for this callback of the tween.
+            //         rotateAboutWorldAxis(this.camera, new THREE
+            //             .Vector3(0, 1, 0), THREE.MathUtils
+            //             .degToRad(angleToRotate)); 
+            //     })
+            //     .onComplete(() => {
                     
-                    // Flip the current turn.
-                    this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
+            //         // Flip the current turn.
+            //         this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
 
-                    if (this.cameraAngle == 360) {
-                        this.cameraAngle = 0;
-                    }
+            //         if (this.cameraAngle == 360) {
+            //             this.cameraAngle = 0;
+            //         }
 
-                    resolve();
-                });
-            tween.start();
+            //         resolve();
+            //     });
+            // tween.start();
+            this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
         });
     }
 }
@@ -568,6 +585,8 @@ class PieceKeeper {
     }
 
     movePosition(position, doJumpAnimation) {
+        this.boardPosition = worldCoordinateToPointMap.get(JSON
+            .stringify(position));
         const totalAnimationTime = 1000;
         return new Promise((resolve, reject) => {
             const startPos = {
@@ -605,7 +624,13 @@ class PieceKeeper {
                                         .y, currentPos.z));
                                 });
                             })
-                            .onComplete(resolve())
+                            .onComplete(() => {
+                                var originalBoardPos = this.boardPosition;
+                                this.worldPosition = position;
+                                this.boardPosition = worldCoordinateToPointMap
+                                    .get(JSON.stringify(position));
+                                resolve(originalBoardPos);
+                            })
                             .start();
                     })
                     .start();
@@ -619,8 +644,11 @@ class PieceKeeper {
                         });
                     })
                     .onComplete(() => {
+                        var originalBoardPos = this.boardPosition;
                         this.worldPosition = position;
-                        resolve();
+                        this.boardPosition = worldCoordinateToPointMap.get(JSON
+                            .stringify(position));
+                        resolve(originalBoardPos);
                     })
                     .start();
             }

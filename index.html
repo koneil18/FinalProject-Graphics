@@ -9,21 +9,21 @@
 <html>
 <head>
     <title>Attic Checkers</title>
-    <!-- <script type="importmap">
+    <script type="importmap">
         {
             "imports": {
                 "three": "./three.js-master/build/three.module.js",
                 "OrbitControls": "./three.js-master/examples/jsm/controls/OrbitControls.js"
             }
         }
-    </script> -->
+    </script>
 </head>
 <body>
     <canvas id = "myCanvas" width = window.innerWidth height = window.innerHeight></canvas>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js" integrity="sha512-lIKG1kC5TMb1Zx32vdz1n31YJMZRknVY20U9MJ28hD3y2c0OKN0Ce5NhJji78v8zX5UOSsm+MTBOcJt7yMBnSg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script type = "module">
-        import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
-        import { OrbitControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js';
+        import * as THREE from 'three';
+        import { OrbitControls } from 'OrbitControls';
         import { GameBoard } from './dao.js';
 
         const scene = new THREE.Scene();
