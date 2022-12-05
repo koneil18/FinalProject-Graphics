@@ -17,6 +17,8 @@
         import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
         import { OrbitControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js';
         import { GameBoard } from './dao.js';
+        import { ParticleSimulator } from './dust.js';
+        import { BurstHandler } from './dust.js';
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window
@@ -28,7 +30,7 @@
         const renderer = new THREE.WebGLRenderer({
             canvas: myCanvas, antialias: true
         });
-        renderer.setClearColor(0xffffff);
+        renderer.setClearColor(0x000000);
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
 
@@ -37,12 +39,15 @@
         const light = new THREE.AmbientLight(color, intensity);
         scene.add(light);
 
+        const atticDimensions = new THREE.Box3(new THREE.Vector3(-25, -10, -25), new THREE.Vector3(25, 10, 25));
+        const bh = new BurstHandler();
+
         // This needs to be disabled to make MouseClicking work.
-        // new OrbitControls(camera, renderer.domElement);
+        new OrbitControls(camera, renderer.domElement);
 
         const rayCaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
-        const gameBoard = new GameBoard(scene, camera);
+        const gameBoard = new GameBoard(scene, camera, bh);
 
         // Found at: https://threejs.org/docs/#api/en/core/Raycaster
         document.addEventListener('mousedown', (event) => {
@@ -60,11 +65,37 @@
             }
         });
 
+        function keyHandler(e)
+        {
+            var key = e.key.toLowerCase();
+            switch(key)
+            {
+                // N case advances the fractal.
+                case "n":
+                    bh.add(new THREE.Vector3(-2.5, 0, -2.5));
+                    break;
+            }
+        };
+        
+        document.addEventListener("keydown", keyHandler, false);
+
+        var prevTime, time, delta;
+
         function render(time) {
-            TWEEN.update(time);
+            time = performance.now();
+            delta = (time - prevTime) / 1000;
+
+            TWEEN.update(delta);
+            bh.update();
+            ps.update(delta);
             renderer.render(scene, camera);
             requestAnimationFrame(render);
+
+            prevTime = time;
         }
+
+        const ps = new ParticleSimulator(scene, atticDimensions, gameBoard.allObjects, bh);
+        prevTime = performance.now();
         render();
     </script>
 </body>
