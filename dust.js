@@ -347,7 +347,7 @@ class ParticleSimulator
     {
         var currBursts = this.burstHandler.getBursts();
 
-        // Updates every particlein the array.
+        // Updates every particle in the array.
         for(var i = 0; i < this.particles.length; i++)
         {
             this.particles[i].update(delta, this.bounds, this.objArray);
@@ -361,20 +361,40 @@ class ParticleSimulator
     }
 }
 
+/**
+ * This class manages bursts of air that occur when a piece is captured.
+ */
 class BurstHandler
 {
+    /**
+     * The constructor creates the map, sets the time limit of each burst, and the radius of each burst.
+     * 
+     * @param {Number} timeLimit The time in millesconds each burst should last. 
+     * @param {Number} radius How large each burst should be.
+     */
     constructor(timeLimit=500, radius=10)
     {
+        // activeBursts stores bounding spheres as keys and creation time in milliseconds as values.
         this.activeBursts = new Map();
         this.timeLimit = timeLimit;
         this.radius = radius;
     }
 
+    /**
+     * This function adds a burst centered at the specified location.
+     * 
+     * @param {Vector3} loc The center of the new burst.
+     */
     add(loc)
     {
         this.activeBursts.set(new THREE.Sphere(loc, this.radius), performance.now());
     }
 
+    /**
+     * This function returns an array of the active bursts in the map.
+     * 
+     * @returns An array containg the active bounding spheres representing the bursts is returned.
+     */
     getBursts()
     {
         var retList = [];
@@ -391,6 +411,9 @@ class BurstHandler
         return retList;
     }
 
+    /**
+     * This function handles removing bursts from the map if they have expired.
+     */
     update()
     {
         var iterator = this.activeBursts.entries();
