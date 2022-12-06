@@ -349,7 +349,7 @@ class GameBoard {
         }
     }
 
-    rotateTurn() {
+   rotateTurn() {
         // From https://stackoverflow.com/questions/26660395/rotation-around-an-axis-three-js
         // In order to rotate about an axis, you must construct the rotation matrix (which will rotate about the axis by default)
         // Note: You can also use Quaternions or Euler angles, which you may see if you search online
