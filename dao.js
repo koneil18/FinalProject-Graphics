@@ -23,7 +23,7 @@ class CheckerPiece {
     /**
      * The geometry for each piece.
      */
-    geometry = new THREE.CylinderGeometry(.4, .4, .1, 32);
+    geometry = new THREE.CylinderGeometry(.4, .4, .2, 32);
     materials = null;
     color = null;
     mesh = null;
@@ -297,17 +297,16 @@ class GameBoard {
             var startX = arrayPoint.x, startZ = arrayPoint.z;
 
             var posList = [];
-            const selectedPiece = this.pieceKeeperArray[startX][startZ];
             if (selectedPiece != undefined) {
-                console.log('Selected piece was at: ', this.pieceKeeperArray[arrayPoint.x - 1][arrayPoint.z - 1]);
-                if (this.tilesArray[startX][startZ].tileColor == this
-                    .currentTurn) {
+                console.log('Selected piece was ', selectedPiece);
+                if (selectedPiece.color == this.currentTurn) {
                     clearHighlightedTileList();
                     if (this.currentTurn == 'red') {
                         var diagLeftX = startX - 1, diagLeftZ = startZ - 1;
                         if (inBounds(diagLeftX, diagLeftZ)) {
                             var diagLeft = this
                                 .pieceKeeperArray[diagLeftX][diagLeftZ];
+                            console.log(diagLeft);
                             if (diagLeft == undefined) {
                                 posList.push(new Point(diagLeftX, diagLeftZ));
                             } else if (diagLeft.color != this.currentTurn) {
@@ -442,10 +441,8 @@ class GameBoard {
             const removePoint = await this.originalPieceToMove
                 .movePosition(pointToWorldCoordinateMap.get(JSON
                 .stringify(arrayPoint)), doJumpAnimation);
-            console.log(removePoint);
+            console.log(this.originalPieceToMove.boardPosition.x, this.originalPieceToMove.boardPosition.z, this.pieceKeeperArray[this.originalPieceToMove.boardPosition.x][this.originalPieceToMove.boardPosition.z]);
             this.pieceKeeperArray[removePoint.x][removePoint.z] = undefined;
-            // this.pieceKeeperArray[this.originalPieceToMove.boardPosition
-            //     .x][this.originalPieceToMove.boardPosition.z] = undefined;
             console.log(this.pieceKeeperArray[removePoint.x][removePoint.z])
             this.pieceKeeperArray[arrayPoint.x][arrayPoint.z] = this
                 .originalPieceToMove;
@@ -487,7 +484,9 @@ class GameBoard {
     rotateTurn() {
         // From https://stackoverflow.com/questions/26660395/rotation-around-an-axis-three-js
         // In order to rotate about an axis, you must construct the rotation matrix (which will rotate about the axis by default)
-        const rotateAboutWorldAxis = (object, axis, angle) => {
+        // Note: You can also use Quaternions or Euler angles, which you may see if you search online
+        //    That is beyond what I'd like to go over in this course, but feel free to experiment
+        function rotateAboutWorldAxis(object, axis, angle) {
             var rotationMatrix = new THREE.Matrix4();
             rotationMatrix.makeRotationAxis(axis.normalize(), angle);
             var currentPos = new THREE.Vector4(object.position.x, object
@@ -501,33 +500,38 @@ class GameBoard {
 
         //Rotate the camera
         return new Promise((resolve, reject) => {
-            // const clock = new THREE.Clock();
-            // this.cameraAngle = 0;
-            // const tween = new TWEEN.Tween({angle: this.cameraAngle})
-            //     .to({angle: this.cameraAngle + 180}, 2000)
-            //     .onUpdate((angle) => {
-            //         // The angle between 0 and 180.
-            //         var angleToRotate = angle.angle;
+            // Gets the vector to compare to.
+            let posVec = (this.currentTurn == 'red') ? new THREE
+                .Vector3(0, 0, 1) : new THREE.Vector3(0, 0, -1);
+            const tween = new TWEEN.Tween({angle: this.cameraAngle})
+                .to({angle: 180}, 2000)
+                .onUpdate((angle) => {
+                    // Gets the normalized current position.
+                    var currPos = this.camera.position.clone().setY(0)
+                        .normalize();
 
-            //         // Rotate the camera about the Y-axis, with the small angle
-            //         // for this callback of the tween.
-            //         rotateAboutWorldAxis(this.camera, new THREE
-            //             .Vector3(0, 1, 0), THREE.MathUtils
-            //             .degToRad(angleToRotate)); 
-            //     })
-            //     .onComplete(() => {
-                    
-            //         // Flip the current turn.
-            //         this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
+                    // Gets the ratio of the current position to the destination.
+                    var ratio = posVec.angleTo(currPos) / (Math.PI);
+                    // Gets the ratio in degrees.
+                    var currDeg = ratio * 180;
 
-            //         if (this.cameraAngle == 360) {
-            //             this.cameraAngle = 0;
-            //         }
+                    this.cameraAngle = angle.angle;
 
-            //         resolve();
-            //     });
-            // tween.start();
-            this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
+                    // Gets how far it should rotate to get the desired current 
+                    // angle.
+                    rotateAboutWorldAxis(this.camera, new THREE
+                        .Vector3(0, 1, 0), THREE.MathUtils
+                        .degToRad(angle.angle - currDeg)); 
+                })
+                .onComplete(() => {
+                    // Flip the current turn.
+                    this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
+
+                    this.cameraAngle = 0;
+
+                    resolve();
+                });
+            tween.start();
         });
     }
 }
