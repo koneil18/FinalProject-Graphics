@@ -511,6 +511,7 @@ class GameBoard {
                 .Vector3(0, 0, 1) : new THREE.Vector3(0, 0, -1);
             const tween = new TWEEN.Tween({angle: this.cameraAngle})
                 .to({angle: 180}, 2000)
+                .easing(TWEEN.Easing.Quadratic.InOut)
                 .onUpdate((angle) => {
                     // Gets the normalized current position.
                     var currPos = this.camera.position.clone().setY(0)
