@@ -112,8 +112,6 @@ class GameBoard {
         this.camera = camera;
         this.tilesArray = this.buildBoard();
         this.initPieces();
-
-        this.rotationTest();
     }
 
     async rotationTest() {
@@ -368,7 +366,7 @@ class GameBoard {
         console.log('Beginning rotation', this.cameraAngle);
         return new Promise((resolve, reject) => {
             const tween = new TWEEN.Tween({angle: this.cameraAngle})
-                .to({angle: this.cameraAngle + 180}, 2000)
+                .to({angle: 180}, 2000)
                 .onUpdate((angle) => {
                     // Gets the vector to compare to.
                     var posVec = (this.currentTurn == 'red') ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 0, -1);
@@ -391,7 +389,7 @@ class GameBoard {
                     // Flip the current turn.
                     this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
 
-                    this.cameraAngle %= 360;
+                    this.cameraAngle = 0;
 
                     resolve();
                 });
