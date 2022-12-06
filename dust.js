@@ -6,7 +6,7 @@
  * This file implements the particle system for the project. 
  */
 
-import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import * as THREE from "three";
 
 /**
  * This class implements a single particle in the system and operations to update it.

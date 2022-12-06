@@ -25,8 +25,7 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'OrbitControls';
         import { GameBoard } from './dao.js';
-        import { ParticleSimulator } from './dust.js';
-        import { BurstHandler } from './dust.js';
+        import { ParticleSimulator, BurstHandler } from './dust.js';
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window
@@ -51,7 +50,7 @@
         const bh = new BurstHandler();
 
         // This needs to be disabled to make MouseClicking work.
-        new OrbitControls(camera, renderer.domElement);
+        // new OrbitControls(camera, renderer.domElement);
 
         const rayCaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
@@ -93,7 +92,7 @@
             time = performance.now();
             delta = (time - prevTime) / 1000;
 
-            TWEEN.update(delta);
+            TWEEN.update(time);
             bh.update();
             ps.update(delta);
             renderer.render(scene, camera);
