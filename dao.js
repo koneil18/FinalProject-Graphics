@@ -487,7 +487,21 @@ class GameBoard {
                 await midPointPiece.removeFromGame(this.currentTurn);
             }
 
+            var currentPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
+            console.log(currentPiece.boardPosition);
             // DO THE CHECK FOR KING HERE, THEN PULL 1 PIECE FOR THE KINGING.
+            if (currentPiece.color == 'red' && currentPiece.boardPosition.x == 0){
+                if(this.blackWinnerCount >= 1){
+                    currentPiece.makeKing();
+                    console.log('k');
+                    // then move 1 piece from black winning pile
+                }
+            }else if (currentPiece.color == 'black' && currentPiece.boardPosition.z == 7){
+                if(this.redWinnerCount >= 1){
+                    currentPiece.makeKing( );
+                    // then pull one piece from red winning pile
+                }
+            }
 
             // Check for a winner, otherwise rotate the turn to the other player.
             if (!this.checkForWinner()) {
@@ -599,10 +613,11 @@ class PieceKeeper {
     makeKing(piece) {
         this.isKing = true;
         this.pieceList.push(piece);
+        console.log(this.pieceList[0]);
 
         // "Stack" the piece on top of the current piece.
         var stackPos = this.pieceList[0].worldPosition;
-
+        console.log(stackPos);
         var y = stackPos.y;
         this.pieceList.forEach((piece) => {
             piece.mesh.position.set(stackPos.x, y, stackPos.z);
