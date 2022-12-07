@@ -110,6 +110,8 @@ class GameBoard {
     cameraAngle = 0;
     originalPieceToMovePosition = null;
     highlightedTileList = [];
+    redWinningPile = [];
+    blackWinningPile = [];
 
     constructor(scene, camera, burstHandler) {
         this.scene = scene;
@@ -483,23 +485,26 @@ class GameBoard {
             if (midPointPiece != null) {
                 var removeX = midPointPiece.boardPosition.x, 
                     removeZ = midPointPiece.boardPosition.z;
+                // Add the jumped piece to the corresponding pile
+                if(midPointPiece.color == 'red'){
+                    this.blackWinningPile.push(midPointPiece);
+                }else{
+                    this.redWinningPile.push(midPointPiece);
+                }
                 this.pieceKeeperArray[removeX][removeZ] = undefined;
                 await midPointPiece.removeFromGame(this.currentTurn);
             }
 
+            // Get the currentPiece
             var currentPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
-            console.log(currentPiece.boardPosition);
-            // DO THE CHECK FOR KING HERE, THEN PULL 1 PIECE FOR THE KINGING.
-            if (currentPiece.color == 'red' && currentPiece.boardPosition.x == 0){
-                if(this.blackWinnerCount >= 1){
-                    currentPiece.makeKing();
-                    console.log('k');
-                    // then move 1 piece from black winning pile
+            // Make King by checking piece color, position, and size of winning stack
+            if (currentPiece.color == 'red' && currentPiece.boardPosition.z == 0){
+                if(this.blackWinningPile.length >= 1){
+                    currentPiece.makeKing( this.redWinningPile.pop());
                 }
             }else if (currentPiece.color == 'black' && currentPiece.boardPosition.z == 7){
-                if(this.redWinnerCount >= 1){
-                    currentPiece.makeKing( );
-                    // then pull one piece from red winning pile
+                if(this.redWinningPile.length >= 1){
+                    currentPiece.makeKing( this.redWinningPile.pop());
                 }
             }
 
@@ -612,8 +617,9 @@ class PieceKeeper {
 
     makeKing(piece) {
         this.isKing = true;
+        console.log(piece);
         this.pieceList.push(piece);
-        console.log(this.pieceList[0]);
+        console.log(this.pieceList[0])
 
         // "Stack" the piece on top of the current piece.
         var stackPos = this.pieceList[0].worldPosition;
