@@ -1,16 +1,26 @@
 import * as THREE from "three";
 
 /*
-*
+* A map to hold the correct winning stack location for each player.
 */
 const winningPlayerLocations = {
     'red': new THREE.Vector3(5, 0, 0),
     'black': new THREE.Vector3(-5, 0, 0)
 }
 
+/**
+ * A map to hold the world coordinates of the board tiles and their
+ * corresponding Point objects.
+ */
 const worldCoordinateToPointMap = new Map();
+
+/**
+ * A map to hold the point objects of the board array and their corresponding
+ * THREE.Vector3 object.
+ */
 const pointToWorldCoordinateMap = new Map();
 
+// Red and Black textures for each checker piece.
 const redTexture = new THREE.TextureLoader()
     .load('assets/pieces/red_checker_piece.png');
 const blackTexture = new THREE.TextureLoader()
@@ -39,10 +49,6 @@ class CheckerPiece {
     constructor(color, position, group) {
         this.color = color;
         this.buildPiece(group, position);
-    }
-
-    get getColor() {
-        return this.color;
     }
 
     /**
@@ -111,6 +117,13 @@ class GameBoard {
     originalPieceToMovePosition = null;
     highlightedTileList = [];
 
+    /**
+     * Constructs the GameBoard object and handles all logic for the game.
+     * 
+     * @param {THREE.Scene} scene The scene object. 
+     * @param {THREE.Camera} camera The camera object.
+     * @param {BurstHandler} burstHandler The burst handler object.
+     */
     constructor(scene, camera, burstHandler) {
         this.scene = scene;
         this.camera = camera;
@@ -136,6 +149,12 @@ class GameBoard {
         return returnList;
     }
 
+    /**
+     * Builds the board in the scene and returns a list of the mesh objects
+     * used to show the tiles of the board.
+     * 
+     * @returns An array of mesh objects that represents the tiles of the board.
+     */
     buildBoard() {
         const meshesArray = Array.from(Array(8), () => new Array(8));
         var fillRed = false;
@@ -217,6 +236,9 @@ class GameBoard {
         return meshesArray;
     }
 
+    /**
+     * Adds the physical checker pieces to the board.
+     */
     initPieces() {
         var rowCount = 0;
         // Add the black checkers.
@@ -260,11 +282,23 @@ class GameBoard {
         }
     }
 
+    /**
+     * Handles a click by the user. This can either show the valid moves to 
+     * highlight, or move the piece to a selected position.
+     * 
+     * @param {THREE.Vector3} position The world coordinate the user clicked at.
+     */
     async handleClick(position) {
+        // The point object corresponding to where the user clicked.
         var arrayPoint = worldCoordinateToPointMap.get(JSON
             .stringify(position));
+
+        // Get the piece the user selected.
         const selectedPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
 
+        /**
+         * Clears the list of highlighted tiles.
+         */
         const clearHighlightedTileList = () => {
             this.highlightedPointList = [];
             while (this.highlightedTileList.length > 0) {
@@ -273,7 +307,17 @@ class GameBoard {
             }
         };
 
+        /**
+         * Highlights the valid moves the user can make based on the checker
+         * piece they clicked on.
+         */
         const highlightValidMoves = () => {
+
+            /**
+             * Highlights the tile at the given coordinate.
+             * 
+             * @param {Point} coord The coordinate of the board to highlight.
+             */
             const highlightTile = (coord) => {
                 const tile = this.tilesArray[coord.x][coord.z];
                 const edges = new THREE.EdgesGeometry(tile.geometry);
@@ -286,6 +330,15 @@ class GameBoard {
                 this.highlightedTileList.push(outline);
             };
 
+            /**
+             * Returns whether or not the given coordinate is on the board or 
+             * not.
+             * 
+             * @param {Number} x The x coordinate. 
+             * @param {Number} z The z coordinate.
+             * @returns A boolean representing if the coordinate is on the board
+             * or not.
+             */
             const inBounds = (x, z) => {
                 if (this.pieceKeeperArray[x] == undefined) {
                     return false;
@@ -366,6 +419,8 @@ class GameBoard {
                         }
                     }   
                     
+                    // If the selected piece was a king, check for moves in the
+                    // opposite direction. 
                     if (selectedPiece.isKing) {
                          // Get the correct direction to look based on the color.
                         var zBehind = startZ + 
@@ -432,6 +487,7 @@ class GameBoard {
                         }
                     }
 
+                    // Highlight every tile that was detected as valid.
                     for (var point of posList) {
                         highlightTile(point);
                     }
@@ -439,18 +495,36 @@ class GameBoard {
             }
         };
 
-        const getMidPointPiece = (x1, y1, x2, y2) => {
+        /**
+         * Find the piece on the board that is in the middle of the specified
+         * coordinates.
+         * 
+         * @param {Number} x1 The first x coordinate.
+         * @param {*} z1 The first z coordinate.
+         * @param {*} x2 The second x coordinate.
+         * @param {*} z2 The second z coordinate.
+         * @returns A PieceKeeper object if a jump was performed, otherwise null.
+         */
+        const getMidPointPiece = (x1, z1, x2, z2) => {
             var midX = (x1 + x2) / 2,
-                midY = (y1 + y2) / 2;
+                midZ = (z1 + z2) / 2;
 
-            if (midX - Math.floor(midX) !== 0 || midY - Math
-                .floor(midY) !== 0) {
+            if (midX - Math.floor(midX) !== 0 || midZ - Math
+                .floor(midZ) !== 0) {
                 return null;
             }
             
-            return this.pieceKeeperArray[midX][midY];
+            return this.pieceKeeperArray[midX][midZ];
         }
 
+        /**
+         * Returns whether or not the the point the user selected is highlighted
+         * or not.
+         * 
+         * @param {Point} selectedPoint The point the user selected.
+         * @returns A boolean representing if the point the user clicked is 
+         * highlighted or not.
+         */
         const isHighlightedPointSelected = (selectedPoint) => {
             for (const point of this.highlightedPointList) {
                 if (point.x == selectedPoint.x && point.z == selectedPoint.z) {
@@ -461,6 +535,7 @@ class GameBoard {
             return false;
         }
 
+        // If the selected point was highlighted, then a move is being made.
         if (this.originalPieceToMove != null && 
                 isHighlightedPointSelected(arrayPoint)) {
             // Get the piece in between the point selected and the move-to pos.
@@ -499,6 +574,11 @@ class GameBoard {
         }
     }
 
+    /**
+     * Checks for a winner, and shows a winning message if found.
+     * 
+     * @returns A boolean representing if a winner was found or not.
+     */
     checkForWinner() {
         var winningPlayer = null;
 
@@ -515,6 +595,12 @@ class GameBoard {
         return false;
     }
 
+    /**
+     * Rotates the current turn to the other user.
+     * 
+     * @returns A new `Promise` that will contain the position to clear on the 
+     * gameboard.
+     */
     rotateTurn() {
         // From https://stackoverflow.com/questions/26660395/rotation-around-an-axis-three-js
         // In order to rotate about an axis, you must construct the rotation matrix (which will rotate about the axis by default)
@@ -571,6 +657,9 @@ class GameBoard {
     }
 }
 
+/**
+ * A class representing a point on the gameboard.
+ */
 class Point {
     constructor(x, z) {
         this.x = x;
@@ -589,6 +678,13 @@ class PieceKeeper {
     boardPosition = null;
     color = null;
 
+    /**
+     * Constructs a new `PieceKeeper` object that holds a single checker.
+     * 
+     * @param {THREE.Vector3} worldPosition The objects position in the scene. 
+     * @param {Point} boardPosition THe objects position on the board.
+     * @param {CheckerPiece} piece The piece the object holds.
+     */
     constructor(worldPosition, boardPosition, piece) {
         this.worldPosition = worldPosition;
         this.boardPosition = boardPosition;
@@ -596,6 +692,12 @@ class PieceKeeper {
         this.color = piece.color;
     }
 
+    /**
+     * Makes the piecekeeper a king, adding a second checker on top of it.
+     * 
+     * @param {CheckerPiece} piece The piece to stack on top of the existing 
+     * checker.
+     */
     makeKing(piece) {
         this.isKing = true;
         this.pieceList.push(piece);
@@ -610,6 +712,11 @@ class PieceKeeper {
         });
     }
 
+    /**
+     * 
+     * @param {String} winningPlayer The player that is going to receive the 
+     * checker.
+     */
     removeFromGame(winningPlayer) {
         var movePos = winningPlayerLocations[winningPlayer]
         this.pieceList.forEach(async (piece) => {
@@ -619,6 +726,14 @@ class PieceKeeper {
         this.boardPosition = null;
     }
 
+    /**
+     * Moves the current PieceKeeper object to the specified point, animating a
+     * "jump" if the `doJumpAnimation` flag is set to true.
+     * @param {THREE.Vector3} position The position to move the PieceKeeper to.
+     * @param {Boolean} doJumpAnimation Whether or not to perform a jump 
+     * animation.
+     * @returns A Promise that will resolve the original position of the piece.
+     */
     movePosition(position, doJumpAnimation) {
         const originalBoardPos = this.boardPosition;
         this.boardPosition = worldCoordinateToPointMap.get(JSON
