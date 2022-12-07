@@ -726,6 +726,14 @@ class PieceKeeper {
         this.boardPosition = null;
     }
 
+    /**
+     * Moves the current PieceKeeper object to the specified point, animating a
+     * "jump" if the `doJumpAnimation` flag is set to true.
+     * @param {THREE.Vector3} position The position to move the PieceKeeper to.
+     * @param {Boolean} doJumpAnimation Whether or not to perform a jump 
+     * animation.
+     * @returns A Promise that will resolve the original position of the piece.
+     */
     movePosition(position, doJumpAnimation) {
         const originalBoardPos = this.boardPosition;
         this.boardPosition = worldCoordinateToPointMap.get(JSON
