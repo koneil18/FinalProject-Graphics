@@ -581,10 +581,8 @@ class GameBoard {
      */
     checkForWinner() {
         var winningPlayer = null;
-
         if (this.redWinnerCount == 12) {
-            winningPlayer = 'Red';
-            return true;
+            
         }
 
         if (this.blackWinnerCount == 12) {
