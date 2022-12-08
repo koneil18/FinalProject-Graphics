@@ -10,6 +10,9 @@
 <head>
     <title>Attic Checkers</title>
     <link rel="stylesheet" href="./index.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <script type="importmap">
         {
             "imports": {
@@ -25,7 +28,7 @@
         }
     </script>
 </head>
-<body>
+<body id="body">
     <div id="preGamePopUp" class="fullScreenPopUp">
         <button class="playGameBtn" onclick="playGameClick(event)">Play Game</button>
     </div>
@@ -60,7 +63,7 @@
         const bh = new BurstHandler();
 
         // This needs to be disabled to make MouseClicking work.
-        // new OrbitControls(camera, renderer.domElement);
+        //new OrbitControls(camera, renderer.domElement);
 
         const rayCaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
@@ -111,7 +114,8 @@
             prevTime = time;
         }
 
-        const ps = new ParticleSimulator(scene, atticDimensions, gameBoard.allObjects, bh);
+        const ps = new ParticleSimulator(scene, atticDimensions, gameBoard
+            .allObjects, bh);
         prevTime = performance.now();
         render();
     </script>
