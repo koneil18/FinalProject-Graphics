@@ -15,7 +15,8 @@ const redTexture = new THREE.TextureLoader()
     .load('assets/pieces/red_checker_piece.png');
 const blackTexture = new THREE.TextureLoader()
     .load('assets/pieces/black_checker_piece.png');
-
+const redWinningPile = [];
+const blackWinningPile = [];
 /**
  * A class for a single CheckerPiece.
  */
@@ -27,6 +28,7 @@ class CheckerPiece {
     materials = null;
     color = null;
     mesh = null;
+
 
     /**
      * Constructs a new Piece object of the specified color and moves it to the
@@ -110,8 +112,7 @@ class GameBoard {
     cameraAngle = 0;
     originalPieceToMovePosition = null;
     highlightedTileList = [];
-    redWinningPile = [];
-    blackWinningPile = [];
+
 
     constructor(scene, camera, burstHandler) {
         this.scene = scene;
@@ -485,29 +486,21 @@ class GameBoard {
             if (midPointPiece != null) {
                 var removeX = midPointPiece.boardPosition.x, 
                     removeZ = midPointPiece.boardPosition.z;
-                // Add the jumped piece to the corresponding pile
-                if(midPointPiece.color == 'red'){
-                    this.blackWinningPile.push(midPointPiece);
-                }else{
-                    this.redWinningPile.push(midPointPiece);
-                }
                 this.pieceKeeperArray[removeX][removeZ] = undefined;
                 await midPointPiece.removeFromGame(this.currentTurn);
             }
 
-            // Get the currentPiece
             var currentPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
             // Make King by checking piece color, position, and size of winning stack
-            if (currentPiece.color == 'red' && currentPiece.boardPosition.z == 0){
-                if(this.blackWinningPile.length >= 1){
-                    currentPiece.makeKing( this.redWinningPile.pop());
+            if (this.currentTurn == 'red' && arrayPoint.z == 0){
+                if(redWinningPile.length >= 1){
+                    currentPiece.makeKing( redWinningPile.pop());
                 }
-            }else if (currentPiece.color == 'black' && currentPiece.boardPosition.z == 7){
-                if(this.redWinningPile.length >= 1){
-                    currentPiece.makeKing( this.redWinningPile.pop());
+            }else if (this.currentTurn == 'black' && arrayPoint.z == 7){
+                if(blackWinningPile.length >= 1){
+                    currentPiece.makeKing( blackWinningPile.pop());
                 }
             }
-
             // Check for a winner, otherwise rotate the turn to the other player.
             if (!this.checkForWinner()) {
                 await this.rotateTurn();
@@ -629,12 +622,19 @@ class PieceKeeper {
             piece.mesh.position.set(stackPos.x, y, stackPos.z);
             y += .1;
         });
+
+        piece.movePosition( this.boardPosition);
     }
 
     removeFromGame(winningPlayer) {
         var movePos = winningPlayerLocations[winningPlayer]
         this.pieceList.forEach(async (piece) => {
             await piece.movePosition(movePos)
+            if ( winningPlayer == 'red'){
+                redWinningPile.push(piece);
+            }else {
+                blackWinningPile.push(piece);
+            }
         });
         this.worldPosition = movePos;
         this.boardPosition = null;
