@@ -88,14 +88,66 @@
 
         function keyHandler(e)
         {
-            var key = e.key.toLowerCase();
-            switch(key)
+            var key = gameBoard.easterEggCode;
+            var startedOn = key == gameBoard.easterEgg;
+            var reset = false;
+
+            var keyPress = e.key.toLowerCase();
+            switch(keyPress)
             {
                 // N case advances the fractal.
-                case "n":
-                    bh.add(new THREE.Vector3(-2.5, 0, -2.5));
+                case "w":
+                    if(key.includes(gameBoard.easterEgg) && gameBoard.easterEgg.length <= 1)
+                        gameBoard.easterEgg += keyPress;
+                    else
+                        reset = true;
+                    break;
+                case "a":
+                    if(key.includes(gameBoard.easterEgg) && (gameBoard.easterEgg.length == 4 || gameBoard.easterEgg.length == 6 || gameBoard.easterEgg.length == 9))
+                        gameBoard.easterEgg += keyPress;
+                    else
+                        reset = true;
+                    break;
+                case "s":
+                    if(key.includes(gameBoard.easterEgg) && gameBoard.easterEgg.length >= 2 && gameBoard.easterEgg.length <= 3)
+                        gameBoard.easterEgg += keyPress;
+                    else
+                        reset = true;
+                    break;
+                case "d":
+                    if(key.includes(gameBoard.easterEgg) && (gameBoard.easterEgg.length == 5 || gameBoard.easterEgg.length == 7))
+                        gameBoard.easterEgg += keyPress;
+                    else
+                        reset = true;
+                    break;
+                case "b":
+                    if(key.includes(gameBoard.easterEgg) && gameBoard.easterEgg.length == 8)
+                        gameBoard.easterEgg += keyPress;
+                    else
+                        reset = true;
+                    break;
+                case "tab":
+                    break;
+                case "alt":
+                    break;
+                case "enter":
+                    if(key.includes(gameBoard.easterEgg) && gameBoard.easterEgg.length == 10)
+                        gameBoard.easterEgg += keyPress;
+                    break;
+                default:
+                    gameBoard.easterEgg = '';
                     break;
             }
+
+            if(reset)
+                gameBoard.easterEgg = '';
+
+            if(gameBoard.easterEgg == key && !startedOn)
+                window.alert('Checkers was never meant for this.');
+            else if(gameBoard.easterEgg != key && startedOn)
+                window.alert('Everything is the way it should be.');
+            
+            // console.log("gameBoard.easterEgg: [" + gameBoard.easterEgg + "], key: [" + key + "]");
         };
         
         document.addEventListener("keydown", keyHandler, false);

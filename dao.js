@@ -117,6 +117,8 @@ class GameBoard {
     originalPieceToMovePosition = null;
     highlightedTileList = [];
     interactionLock = false;
+    easterEgg = '';
+    easterEggCode = 'wwssadadbaenter'
 
     /**
      * Constructs the GameBoard object and handles all logic for the game.
@@ -539,7 +541,9 @@ class GameBoard {
 
             // If the selected point was highlighted, then a move is being made.
             if (this.originalPieceToMove != null && 
-                    isHighlightedPointSelected(arrayPoint)) {
+                    (this.originalPieceToMove.color == this.currentTurn || 
+                        this.easterEgg == this.easterEggCode) && 
+                            isHighlightedPointSelected(arrayPoint)) {
                 this.interactionLock = true;
                 // Get the piece in between the point selected and the move-to pos.
                 var midPointPiece = getMidPointPiece(this.originalPieceToMove
