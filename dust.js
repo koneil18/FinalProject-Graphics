@@ -54,7 +54,7 @@ class Particle
     randomizeLocation(bounds)
     {
         this.mesh.position.setX(this.random(bounds.min.x, bounds.max.x));
-        this.mesh.position.setY(this.random(0, bounds.max.y));
+        this.mesh.position.setY(this.random(bounds.min.y, bounds.max.y));
         this.mesh.position.setZ(this.random(bounds.min.z, bounds.max.z));
     }
 
@@ -302,7 +302,7 @@ class ParticleSimulator
         this.burstHandler = burstHandler;
 
         // count stores the number of particles to create.
-        this.count = 3000;
+        this.count = 10000;
 
         // Creates bounding boxes and bounding spheres for every object in the object array.
         for(var i = 0; i < objArray.length; i++)

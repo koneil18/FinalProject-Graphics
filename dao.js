@@ -565,7 +565,10 @@ class GameBoard {
                 if (midPointPiece != null) {
                     var removeX = midPointPiece.boardPosition.x, 
                         removeZ = midPointPiece.boardPosition.z;
+
                     var removedColor = this.pieceKeeperArray[removeX][removeZ].color;
+                    this.burstHandler.add(midPointPiece.worldPosition.clone());
+                    
                     this.pieceKeeperArray[removeX][removeZ] = undefined;
 
                     if(removedColor == 'red')
