@@ -21,12 +21,6 @@
             }
         }
     </script>
-    <script>
-        const playGameClick = (evt) => {
-            evt.preventDefault();
-            document.getElementById('preGamePopUp').remove();
-        }
-    </script>
 </head>
 <body id="body">
     <div id="preGamePopUp" class="fullScreenPopUp">
@@ -69,6 +63,12 @@
         const rayCaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
         const gameBoard = new GameBoard(scene, camera, bh);
+
+        window.playGameClick = (evt) => {
+            evt.preventDefault();
+            document.getElementById('preGamePopUp').remove();
+            gameBoard.interactionLock = false;
+        }
 
         // Found at: https://threejs.org/docs/#api/en/core/Raycaster
         document.addEventListener('mousedown', (event) => {

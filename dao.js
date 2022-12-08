@@ -116,7 +116,7 @@ class GameBoard {
     cameraAngle = 0;
     originalPieceToMovePosition = null;
     highlightedTileList = [];
-    interactionLock = false;
+    interactionLock = true;
     easterEgg = '';
     easterEggCode = 'wwssadadbaenter'
 
