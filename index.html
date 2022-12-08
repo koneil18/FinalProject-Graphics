@@ -59,7 +59,8 @@
         const light = new THREE.AmbientLight(color, intensity);
         scene.add(light);
 
-        const atticDimensions = new THREE.Box3(new THREE.Vector3(-25, -10, -25), new THREE.Vector3(25, 10, 25));
+        const atticDimensions = new THREE.Box3(new THREE.Vector3(-25, -10, -25), 
+            new THREE.Vector3(25, 10, 25));
         const bh = new BurstHandler();
 
         // This needs to be disabled to make MouseClicking work.
@@ -117,6 +118,7 @@
         const ps = new ParticleSimulator(scene, atticDimensions, gameBoard
             .allObjects, bh);
         prevTime = performance.now();
+
         render();
     </script>
 </body>

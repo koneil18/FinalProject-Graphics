@@ -116,6 +116,7 @@ class GameBoard {
     cameraAngle = 0;
     originalPieceToMovePosition = null;
     highlightedTileList = [];
+    interactionLock = false;
 
     /**
      * Constructs the GameBoard object and handles all logic for the game.
@@ -289,154 +290,88 @@ class GameBoard {
      * @param {THREE.Vector3} position The world coordinate the user clicked at.
      */
     async handleClick(position) {
-        // The point object corresponding to where the user clicked.
-        var arrayPoint = worldCoordinateToPointMap.get(JSON
-            .stringify(position));
+        if(!this.interactionLock) {
+            // The point object corresponding to where the user clicked.
+            var arrayPoint = worldCoordinateToPointMap.get(JSON
+                .stringify(position));
 
-        // Get the piece the user selected.
-        const selectedPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
-
-        /**
-         * Clears the list of highlighted tiles.
-         */
-        const clearHighlightedTileList = () => {
-            this.highlightedPointList = [];
-            while (this.highlightedTileList.length > 0) {
-                var currentTile = this.highlightedTileList.pop();
-                this.scene.remove(currentTile);
-            }
-        };
-
-        /**
-         * Highlights the valid moves the user can make based on the checker
-         * piece they clicked on.
-         */
-        const highlightValidMoves = () => {
+            // Get the piece the user selected.
+            const selectedPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
 
             /**
-             * Highlights the tile at the given coordinate.
-             * 
-             * @param {Point} coord The coordinate of the board to highlight.
+             * Clears the list of highlighted tiles.
              */
-            const highlightTile = (coord) => {
-                const tile = this.tilesArray[coord.x][coord.z];
-                const edges = new THREE.EdgesGeometry(tile.geometry);
-                const outline = new THREE.LineSegments(edges, new THREE
-                    .LineBasicMaterial({ color: 'white' }));
-                outline.position.set(tile.position.x, tile.position.y, tile
-                    .position.z);
-                this.scene.add(outline);
-                this.highlightedPointList.push(coord);
-                this.highlightedTileList.push(outline);
+            const clearHighlightedTileList = () => {
+                this.highlightedPointList = [];
+                while (this.highlightedTileList.length > 0) {
+                    var currentTile = this.highlightedTileList.pop();
+                    this.scene.remove(currentTile);
+                }
             };
 
             /**
-             * Returns whether or not the given coordinate is on the board or 
-             * not.
-             * 
-             * @param {Number} x The x coordinate. 
-             * @param {Number} z The z coordinate.
-             * @returns A boolean representing if the coordinate is on the board
-             * or not.
+             * Highlights the valid moves the user can make based on the checker
+             * piece they clicked on.
              */
-            const inBounds = (x, z) => {
-                if (this.pieceKeeperArray[x] == undefined) {
-                    return false;
-                } else {
-                    if ((x >= 0 && x <= 7) && (z >= 0 && z <= 7)) {
-                        return true;
+            const highlightValidMoves = () => {
+
+                /**
+                 * Highlights the tile at the given coordinate.
+                 * 
+                 * @param {Point} coord The coordinate of the board to highlight.
+                 */
+                const highlightTile = (coord) => {
+                    const tile = this.tilesArray[coord.x][coord.z];
+                    const edges = new THREE.EdgesGeometry(tile.geometry);
+                    const outline = new THREE.LineSegments(edges, new THREE
+                        .LineBasicMaterial({ color: 'white' }));
+                    outline.position.set(tile.position.x, tile.position.y, tile
+                        .position.z);
+                    this.scene.add(outline);
+                    this.highlightedPointList.push(coord);
+                    this.highlightedTileList.push(outline);
+                };
+
+                /**
+                 * Returns whether or not the given coordinate is on the board or 
+                 * not.
+                 * 
+                 * @param {Number} x The x coordinate. 
+                 * @param {Number} z The z coordinate.
+                 * @returns A boolean representing if the coordinate is on the board
+                 * or not.
+                 */
+                const inBounds = (x, z) => {
+                    if (this.pieceKeeperArray[x] == undefined) {
+                        return false;
+                    } else {
+                        if ((x >= 0 && x <= 7) && (z >= 0 && z <= 7)) {
+                            return true;
+                        }
                     }
                 }
-            }
 
-            var startX = arrayPoint.x, startZ = arrayPoint.z;
-            var posList = [];
-            if (selectedPiece != undefined) {
-                if (selectedPiece.color == this.currentTurn) {
+                var startX = arrayPoint.x, startZ = arrayPoint.z;
+                var posList = [];
+                if (selectedPiece != undefined) {
+                    if (selectedPiece.color == this.currentTurn) {
 
-                    // Clear any tiles that may already be highlighted.
-                    clearHighlightedTileList();
+                        // Clear any tiles that may already be highlighted.
+                        clearHighlightedTileList();
 
-                    // Get the correct direction to look based on the color.
-                    var zFront = startZ + ((this.currentTurn == 'red') ? -1 : 1);
-                    var zJump = startZ + ((this.currentTurn == 'red') ? -2 : 2);
-
-                    // Check for a move diagonally to the left.
-                    var xLeft = startX - 1;
-                    if (inBounds(xLeft, zFront)) {
-                        var frontLeft = this.pieceKeeperArray[xLeft][zFront];
-
-                        // If the piece is blank, add it to the list to 
-                        // highlight. Otherwise, check for a jump.
-                        if (frontLeft == undefined) {
-                            posList.push(new Point(xLeft, zFront));
-                        } 
-                        else {
-                            // If the checker on the diagonal is the opposite 
-                            // team, then check 1 beyond that piece.
-                            if (frontLeft.color != this.currentTurn) {
-                                xLeft--;
-
-                                // Check to see if the jump coordinate is in
-                                // bounds.
-                                if (inBounds(xLeft, zJump)) {
-                                    var leftJumpPiece = this
-                                        .pieceKeeperArray[xLeft][zJump];
-                                    if (leftJumpPiece == undefined) {
-                                        posList.push(new Point(xLeft, zJump));
-                                    }
-                                }                               
-                            }
-                        }
-                    }   
-                    
-                    // Check for a move diagonally to the right.
-                    var xRight = startX + 1;
-                    if (inBounds(xRight, zFront)) {
-                        const frontRight = this
-                            .pieceKeeperArray[xRight][zFront];
-
-                        // If the piece is blank, add it to the list to 
-                        // highlight. Otherwise, check for a jump.
-                        if (frontRight == undefined) {
-                            posList.push(new Point(xRight, zFront));
-                        } else {
-                            // If the checker on the diagonal is the opposite
-                            // team, then check 1 beyond that piece.
-                            if (frontRight.color != this.currentTurn) {
-                                xRight++;
-
-                                // Check to see if the jump coordinate is in
-                                // bounds.
-                                if (inBounds(xRight, zJump)) {
-                                    var rightJumpPiece = this.
-                                        pieceKeeperArray[xRight][zJump];
-                                    if (rightJumpPiece == undefined) {
-                                        posList.push(new Point(xRight, zJump));
-                                    }
-                                }
-                            }
-                        }
-                    }   
-                    
-                    // If the selected piece was a king, check for moves in the
-                    // opposite direction. 
-                    if (selectedPiece.isKing) {
-                         // Get the correct direction to look based on the color.
-                        var zBehind = startZ + 
-                            ((this.currentTurn == 'red') ? 1 : -1);
-                        var zJump = startZ + 
-                            ((this.currentTurn == 'red') ? 2 : -2);
+                        // Get the correct direction to look based on the color.
+                        var zFront = startZ + ((this.currentTurn == 'red') ? -1 : 1);
+                        var zJump = startZ + ((this.currentTurn == 'red') ? -2 : 2);
 
                         // Check for a move diagonally to the left.
-                        xLeft = startX - 1;
-                        if (inBounds(xLeft, zBehind)) {
-                            var frontLeft = this.pieceKeeperArray[xLeft][zBehind];
+                        var xLeft = startX - 1;
+                        if (inBounds(xLeft, zFront)) {
+                            var frontLeft = this.pieceKeeperArray[xLeft][zFront];
 
                             // If the piece is blank, add it to the list to 
                             // highlight. Otherwise, check for a jump.
                             if (frontLeft == undefined) {
-                                posList.push(new Point(xLeft, zBehind));
+                                posList.push(new Point(xLeft, zFront));
                             } 
                             else {
                                 // If the checker on the diagonal is the opposite 
@@ -458,15 +393,15 @@ class GameBoard {
                         }   
                         
                         // Check for a move diagonally to the right.
-                        xRight = startX + 1;
-                        if (inBounds(xRight, zBehind)) {
+                        var xRight = startX + 1;
+                        if (inBounds(xRight, zFront)) {
                             const frontRight = this
-                                .pieceKeeperArray[xRight][zBehind];
+                                .pieceKeeperArray[xRight][zFront];
 
                             // If the piece is blank, add it to the list to 
                             // highlight. Otherwise, check for a jump.
                             if (frontRight == undefined) {
-                                posList.push(new Point(xRight, zBehind));
+                                posList.push(new Point(xRight, zFront));
                             } else {
                                 // If the checker on the diagonal is the opposite
                                 // team, then check 1 beyond that piece.
@@ -484,99 +419,168 @@ class GameBoard {
                                     }
                                 }
                             }
+                        }   
+                        
+                        // If the selected piece was a king, check for moves in the
+                        // opposite direction. 
+                        if (selectedPiece.isKing) {
+                            // Get the correct direction to look based on the color.
+                            var zBehind = startZ + 
+                                ((this.currentTurn == 'red') ? 1 : -1);
+                            var zJump = startZ + 
+                                ((this.currentTurn == 'red') ? 2 : -2);
+
+                            // Check for a move diagonally to the left.
+                            xLeft = startX - 1;
+                            if (inBounds(xLeft, zBehind)) {
+                                var frontLeft = this.pieceKeeperArray[xLeft][zBehind];
+
+                                // If the piece is blank, add it to the list to 
+                                // highlight. Otherwise, check for a jump.
+                                if (frontLeft == undefined) {
+                                    posList.push(new Point(xLeft, zBehind));
+                                } 
+                                else {
+                                    // If the checker on the diagonal is the opposite 
+                                    // team, then check 1 beyond that piece.
+                                    if (frontLeft.color != this.currentTurn) {
+                                        xLeft--;
+
+                                        // Check to see if the jump coordinate is in
+                                        // bounds.
+                                        if (inBounds(xLeft, zJump)) {
+                                            var leftJumpPiece = this
+                                                .pieceKeeperArray[xLeft][zJump];
+                                            if (leftJumpPiece == undefined) {
+                                                posList.push(new Point(xLeft, zJump));
+                                            }
+                                        }                               
+                                    }
+                                }
+                            }   
+                            
+                            // Check for a move diagonally to the right.
+                            xRight = startX + 1;
+                            if (inBounds(xRight, zBehind)) {
+                                const frontRight = this
+                                    .pieceKeeperArray[xRight][zBehind];
+
+                                // If the piece is blank, add it to the list to 
+                                // highlight. Otherwise, check for a jump.
+                                if (frontRight == undefined) {
+                                    posList.push(new Point(xRight, zBehind));
+                                } else {
+                                    // If the checker on the diagonal is the opposite
+                                    // team, then check 1 beyond that piece.
+                                    if (frontRight.color != this.currentTurn) {
+                                        xRight++;
+
+                                        // Check to see if the jump coordinate is in
+                                        // bounds.
+                                        if (inBounds(xRight, zJump)) {
+                                            var rightJumpPiece = this.
+                                                pieceKeeperArray[xRight][zJump];
+                                            if (rightJumpPiece == undefined) {
+                                                posList.push(new Point(xRight, zJump));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Highlight every tile that was detected as valid.
+                        for (var point of posList) {
+                            highlightTile(point);
                         }
                     }
+                }
+            };
 
-                    // Highlight every tile that was detected as valid.
-                    for (var point of posList) {
-                        highlightTile(point);
+            /**
+             * Find the piece on the board that is in the middle of the specified
+             * coordinates.
+             * 
+             * @param {Number} x1 The first x coordinate.
+             * @param {*} z1 The first z coordinate.
+             * @param {*} x2 The second x coordinate.
+             * @param {*} z2 The second z coordinate.
+             * @returns A PieceKeeper object if a jump was performed, otherwise null.
+             */
+            const getMidPointPiece = (x1, z1, x2, z2) => {
+                var midX = (x1 + x2) / 2,
+                    midZ = (z1 + z2) / 2;
+
+                if (midX - Math.floor(midX) !== 0 || midZ - Math
+                    .floor(midZ) !== 0) {
+                    return null;
+                }
+                
+                return this.pieceKeeperArray[midX][midZ];
+            }
+
+            /**
+             * Returns whether or not the the point the user selected is highlighted
+             * or not.
+             * 
+             * @param {Point} selectedPoint The point the user selected.
+             * @returns A boolean representing if the point the user clicked is 
+             * highlighted or not.
+             */
+            const isHighlightedPointSelected = (selectedPoint) => {
+                for (const point of this.highlightedPointList) {
+                    if (point.x == selectedPoint.x && point.z == selectedPoint.z) {
+                        return true;
                     }
                 }
+
+                return false;
             }
-        };
 
-        /**
-         * Find the piece on the board that is in the middle of the specified
-         * coordinates.
-         * 
-         * @param {Number} x1 The first x coordinate.
-         * @param {*} z1 The first z coordinate.
-         * @param {*} x2 The second x coordinate.
-         * @param {*} z2 The second z coordinate.
-         * @returns A PieceKeeper object if a jump was performed, otherwise null.
-         */
-        const getMidPointPiece = (x1, z1, x2, z2) => {
-            var midX = (x1 + x2) / 2,
-                midZ = (z1 + z2) / 2;
+            // If the selected point was highlighted, then a move is being made.
+            if (this.originalPieceToMove != null && 
+                    isHighlightedPointSelected(arrayPoint)) {
+                this.interactionLock = true;
+                // Get the piece in between the point selected and the move-to pos.
+                var midPointPiece = getMidPointPiece(this.originalPieceToMove
+                    .boardPosition.x, this.originalPieceToMove.boardPosition
+                    .z, arrayPoint.x, arrayPoint.z);
+                
+                var doJumpAnimation = (midPointPiece != null);
+                const removePoint = await this.originalPieceToMove
+                    .movePosition(pointToWorldCoordinateMap.get(JSON
+                    .stringify(arrayPoint)), doJumpAnimation);
+                this.pieceKeeperArray[removePoint.x][removePoint.z] = undefined;
+                this.pieceKeeperArray[arrayPoint.x][arrayPoint.z] = this
+                    .originalPieceToMove;
+                clearHighlightedTileList();
+                this.originalPieceToMove = null;
 
-            if (midX - Math.floor(midX) !== 0 || midZ - Math
-                .floor(midZ) !== 0) {
-                return null;
-            }
-            
-            return this.pieceKeeperArray[midX][midZ];
-        }
-
-        /**
-         * Returns whether or not the the point the user selected is highlighted
-         * or not.
-         * 
-         * @param {Point} selectedPoint The point the user selected.
-         * @returns A boolean representing if the point the user clicked is 
-         * highlighted or not.
-         */
-        const isHighlightedPointSelected = (selectedPoint) => {
-            for (const point of this.highlightedPointList) {
-                if (point.x == selectedPoint.x && point.z == selectedPoint.z) {
-                    return true;
+                // If the piece found was not null, AKA it was a jump, move the 
+                // taken piece.
+                if (midPointPiece != null) {
+                    var removeX = midPointPiece.boardPosition.x, 
+                        removeZ = midPointPiece.boardPosition.z;
+                    this.pieceKeeperArray[removeX][removeZ] = undefined;
+                    await midPointPiece.removeFromGame(this.currentTurn);
                 }
+
+                // If a jump was made, check for a double jump.
+                // if (doJumpAnimation) {
+                //     this.handleClick(pointToWorldCoordinateMap.get(JSON
+                //         .stringify(arrayPoint)));
+                // }
+
+                // DO THE CHECK FOR KING HERE, THEN PULL 1 PIECE FOR THE KINGING.
+
+                // Check for a winner, otherwise rotate the turn to the other player.
+                if (!this.checkForWinner()) {
+                    await this.rotateTurn();
+                }
+            } else {
+                highlightValidMoves();
+                this.originalPieceToMove = selectedPiece;
             }
-
-            return false;
-        }
-
-        // If the selected point was highlighted, then a move is being made.
-        if (this.originalPieceToMove != null && 
-                isHighlightedPointSelected(arrayPoint)) {
-            // Get the piece in between the point selected and the move-to pos.
-            var midPointPiece = getMidPointPiece(this.originalPieceToMove
-                .boardPosition.x, this.originalPieceToMove.boardPosition
-                .z, arrayPoint.x, arrayPoint.z);
-            
-            var doJumpAnimation = (midPointPiece != null);
-            const removePoint = await this.originalPieceToMove
-                .movePosition(pointToWorldCoordinateMap.get(JSON
-                .stringify(arrayPoint)), doJumpAnimation);
-            this.pieceKeeperArray[removePoint.x][removePoint.z] = undefined;
-            this.pieceKeeperArray[arrayPoint.x][arrayPoint.z] = this
-                .originalPieceToMove;
-            clearHighlightedTileList();
-            this.originalPieceToMove = null;
-
-            // If the piece found was not null, AKA it was a jump, move the 
-            // taken piece.
-            if (midPointPiece != null) {
-                var removeX = midPointPiece.boardPosition.x, 
-                    removeZ = midPointPiece.boardPosition.z;
-                this.pieceKeeperArray[removeX][removeZ] = undefined;
-                await midPointPiece.removeFromGame(this.currentTurn);
-            }
-
-            // If a jump was made, check for a double jump.
-            // if (doJumpAnimation) {
-            //     this.handleClick(pointToWorldCoordinateMap.get(JSON
-            //         .stringify(arrayPoint)));
-            // }
-
-            // DO THE CHECK FOR KING HERE, THEN PULL 1 PIECE FOR THE KINGING.
-
-            // Check for a winner, otherwise rotate the turn to the other player.
-            if (!this.checkForWinner()) {
-                await this.rotateTurn();
-            }
-        } else {
-            highlightValidMoves();
-            this.originalPieceToMove = selectedPiece;
         }
     }
 
@@ -588,12 +592,12 @@ class GameBoard {
     checkForWinner() {
         var winningPlayer = null, foundWinner = false;
 
-        if (this.redWinnerCount == 12) {
+        if (this.redWinnerCount >= 12) {
             winningPlayer = 'red';
             foundWinner = true;
         }
 
-        if (this.blackWinnerCount == 12) {
+        if (this.blackWinnerCount >= 12) {
             winningPlayer = 'black';
             foundWinner = true;
         }
@@ -671,6 +675,8 @@ class GameBoard {
                     this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
 
                     this.cameraAngle = 0;
+
+                    this.interactionLock = false;
 
                     resolve();
                 });
