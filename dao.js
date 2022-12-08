@@ -565,8 +565,13 @@ class GameBoard {
                 if (midPointPiece != null) {
                     var removeX = midPointPiece.boardPosition.x, 
                         removeZ = midPointPiece.boardPosition.z;
+                    var removedColor = this.pieceKeeperArray[removeX][removeZ].color;
                     this.pieceKeeperArray[removeX][removeZ] = undefined;
-                    await midPointPiece.removeFromGame(this.currentTurn);
+
+                    if(removedColor == 'red')
+                        await midPointPiece.removeFromGame('black');
+                    else
+                        await midPointPiece.removeFromGame('red');
                 }
 
                 // If a jump was made, check for a double jump.
@@ -596,12 +601,12 @@ class GameBoard {
     checkForWinner() {
         var winningPlayer = null, foundWinner = false;
 
-        if (this.redWinnerCount >= 12) {
+        if (this.redWinnerCount == 12) {
             winningPlayer = 'red';
             foundWinner = true;
         }
 
-        if (this.blackWinnerCount >= 12) {
+        if (this.blackWinnerCount == 12) {
             winningPlayer = 'black';
             foundWinner = true;
         }
@@ -759,6 +764,12 @@ class PieceKeeper {
                 this.blackWinnerCount++;
             }
         });
+        
+        if(winningPlayer == 'red')
+            movePos.y += 0.2 * this.redWinnerCount;
+        else
+            movePos.y += 0.2 * this.blackWinnerCount;
+
         this.worldPosition = movePos;
         this.boardPosition = null;
     }
