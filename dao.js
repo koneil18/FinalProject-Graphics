@@ -4,8 +4,8 @@ import * as THREE from "three";
 * A map to hold the correct winning stack location for each player.
 */
 const winningPlayerLocations = {
-    'red': new THREE.Vector3(5, 0, 0),
-    'black': new THREE.Vector3(-5, 0, 0)
+    'red': new THREE.Vector3(6, -1, 0),
+    'black': new THREE.Vector3(-6, -1, 0)
 }
 
 /**
@@ -562,6 +562,12 @@ class GameBoard {
                 await midPointPiece.removeFromGame(this.currentTurn);
             }
 
+            // If a jump was made, check for a double jump.
+            // if (doJumpAnimation) {
+            //     this.handleClick(pointToWorldCoordinateMap.get(JSON
+            //         .stringify(arrayPoint)));
+            // }
+
             // DO THE CHECK FOR KING HERE, THEN PULL 1 PIECE FOR THE KINGING.
 
             // Check for a winner, otherwise rotate the turn to the other player.
@@ -580,19 +586,35 @@ class GameBoard {
      * @returns A boolean representing if a winner was found or not.
      */
     checkForWinner() {
-        var winningPlayer = null;
+        var winningPlayer = null, foundWinner = false;
 
         if (this.redWinnerCount == 12) {
-            winningPlayer = 'Red';
-            return true;
+            winningPlayer = 'red';
+            foundWinner = true;
         }
 
         if (this.blackWinnerCount == 12) {
-            winningPlayer = 'Black';
-            return true;
+            winningPlayer = 'black';
+            foundWinner = true;
         }
 
-        return false;
+        if (foundWinner) {
+            var popUpDiv = document.createElement('div');
+            popUpDiv.classList.add('fullScreenPopUp');
+            popUpDiv.innerHTML = `
+            <div id="preGamePopUp" class="fullScreenPopUp">
+                <h5 class='winningPlayerMessage'>The ${winningPlayer} player won!</h5>
+                <div class='btnsContainer'>  
+                    <a href=''><button class='playAgainBtn'>Play Again</button></a>
+                    <a href='https://www.youtube.com/watch?v=dQw4w9WgXcQ'><button class='playAgainBtn'>Play Super Checkers</button></a> 
+                </div>
+            </div>`;
+
+            document.getElementById('body').insertBefore(popUpDiv, document.body
+                .firstChild);
+        }
+
+        return foundWinner;
     }
 
     /**
@@ -720,7 +742,12 @@ class PieceKeeper {
     removeFromGame(winningPlayer) {
         var movePos = winningPlayerLocations[winningPlayer]
         this.pieceList.forEach(async (piece) => {
-            await piece.movePosition(movePos)
+            await piece.movePosition(movePos);
+            if (winningPlayer == 'red') {
+                this.redWinnerCount++;
+            } else {
+                this.blackWinnerCount++;
+            }
         });
         this.worldPosition = movePos;
         this.boardPosition = null;

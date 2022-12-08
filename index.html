@@ -9,18 +9,31 @@
 <html>
 <head>
     <title>Attic Checkers</title>
+    <link rel="stylesheet" href="./index.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <script type="importmap">
         {
             "imports": {
-                "three": "./three.js-master/build/three.module.js",
-                "OrbitControls": "./three.js-master/examples/jsm/controls/OrbitControls.js"
+                "three": "./lib/three.js-master/build/three.module.js",
+                "OrbitControls": "./lib/three.js-master/examples/jsm/controls/OrbitControls.js"
             }
         }
     </script>
+    <script>
+        const playGameClick = (evt) => {
+            evt.preventDefault();
+            document.getElementById('preGamePopUp').remove();
+        }
+    </script>
 </head>
-<body>
-    <canvas id = "myCanvas" width = window.innerWidth height = window.innerHeight></canvas>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js" integrity="sha512-lIKG1kC5TMb1Zx32vdz1n31YJMZRknVY20U9MJ28hD3y2c0OKN0Ce5NhJji78v8zX5UOSsm+MTBOcJt7yMBnSg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<body id="body">
+    <div id="preGamePopUp" class="fullScreenPopUp">
+        <button class="playGameBtn" onclick="playGameClick(event)">Play Game</button>
+    </div>
+    <canvas id = "myCanvas" width = window.innerWidth height = window.innerHeight style="z-index: 1; position: absolute; top: 0; left: 0;"></canvas>
+    <script src="./lib/tween.umd.js"></script>
     <script type = "module">
         import * as THREE from 'three';
         import { OrbitControls } from 'OrbitControls';
@@ -50,7 +63,7 @@
         const bh = new BurstHandler();
 
         // This needs to be disabled to make MouseClicking work.
-        // new OrbitControls(camera, renderer.domElement);
+        //new OrbitControls(camera, renderer.domElement);
 
         const rayCaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
@@ -101,7 +114,8 @@
             prevTime = time;
         }
 
-        const ps = new ParticleSimulator(scene, atticDimensions, gameBoard.allObjects, bh);
+        const ps = new ParticleSimulator(scene, atticDimensions, gameBoard
+            .allObjects, bh);
         prevTime = performance.now();
         render();
     </script>
