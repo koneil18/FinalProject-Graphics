@@ -36,14 +36,21 @@
 
         const scene = new THREE.Scene();
         var loader = new THREE.TextureLoader();
-        var bgTexture = loader.load('/assets/attic/atticimg.jpg',
+        var bgTexture = loader.load('/assets/attic/atticPan.png',
             function ( texture ){
                 // var img = texture.img;
                 var bgWidth = texture.width;
                 var bgHeight = texture.height;
             }
         );
-        scene.background = bgTexture;
+        // scene.background = bgTexture;
+
+        var panSphere = new THREE.SphereGeometry(500, 60, 40);
+        panSphere.scale(-1, 1, 1);
+        var panMaterial = new THREE.MeshBasicMaterial( { map: bgTexture });
+
+        var panMesh = new THREE.Mesh(panSphere, panMaterial);
+        scene.add(panMesh);
 
         const camera = new THREE.PerspectiveCamera(75, window
             .innerWidth / window.innerHeight, .1, 3000);
@@ -61,13 +68,12 @@
         var dl = new THREE.PointLight(0xffffff, 1.2);
         dl.position.set(-5, 5, 5);
         scene.add(dl);
-
         const atticDimensions = new THREE.Box3(new THREE.Vector3(-10, -10, -10), 
             new THREE.Vector3(10, 10, 10));
         const bh = new BurstHandler();
 
         // This needs to be disabled to make MouseClicking work.
-        //new OrbitControls(camera, renderer.domElement);
+        // new OrbitControls(camera, renderer.domElement);
 
         const rayCaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
