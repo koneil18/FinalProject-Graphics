@@ -612,9 +612,9 @@ class PieceKeeper {
     makeKing() {
         this.isKing = true;
         if (this.color = 'red'){
-           var piece = blackWinningPile.pop();
-        }else {
-            var piece = redWinningPile.pop();
+           var piece = redWinningPile.pop();
+        }else if (this.color = 'black') {
+            var piece = blackWinningPile.pop();
         }
 
          this.pieceList.push(piece);
@@ -648,13 +648,13 @@ class PieceKeeper {
                                 .x, currentPos.y, currentPos.z))
                     })
                 .onComplete(() => {
-                        this.worldPosition = position;
+                        this.worldPosition = stackPos;
                         this.boardPosition = worldCoordinateToPointMap.get(JSON
-                            .stringify(position));
-                        resolve(originalBoardPos);
+                            .stringify(stackPos));
+                        resolve(this.boardPosition);
                     })
-                    .start();
-                });
+                .start();
+            });
     }
 
     removeFromGame(winningPlayer) {
