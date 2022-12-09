@@ -28,7 +28,6 @@ const redTexture = new THREE.TextureLoader()
 const blackTexture = new THREE.TextureLoader()
     .load('assets/pieces/black_checker_piece.png');
 
-
 class Utils {
 
     /**
@@ -59,6 +58,10 @@ class Utils {
         return curve.getPoints(points);
     }
 }
+
+const redWinningPile = [];
+const blackWinningPile = [];
+
 /**
  * A class for a single CheckerPiece.
  */
@@ -70,6 +73,7 @@ class CheckerPiece {
     materials = null;
     color = null;
     mesh = null;
+
 
     /**
      * Constructs a new Piece object of the specified color and moves it to the
@@ -127,6 +131,7 @@ class CheckerPiece {
             rotateAmount = -Math.PI / 2
         }
         this.mesh.rotateY(rotateAmount);
+        this.mesh.castShadow = true;
         group.add(this.mesh);
     }
 
@@ -175,6 +180,8 @@ class GameBoard {
 
         this.tilesArray = this.buildBoard();
         this.initPieces();
+
+        this.pieceKeeperArray[0][0].makeKing(this.boardGroup);
     }
 
     /**
@@ -240,6 +247,8 @@ class GameBoard {
             fillRed = !fillRed;
             x = -4.5;
             z += 1;
+
+            this.meshGroup = group;
         }
 
         // Add the piece the board sits on, and the support for it.
@@ -642,6 +651,50 @@ class GameBoard {
                 highlightValidMoves();
                 this.originalPieceToMove = selectedPiece;
             }
+
+            return false;
+        }
+
+        if (this.originalPieceToMove != null && 
+                isHighlightedPointSelected(arrayPoint)) {
+            // Get the piece in between the point selected and the move-to pos.
+            var midPointPiece = getMidPointPiece(this.originalPieceToMove
+                .boardPosition.x, this.originalPieceToMove.boardPosition
+                .z, arrayPoint.x, arrayPoint.z);
+            
+            var doJumpAnimation = (midPointPiece != null);
+            const removePoint = await this.originalPieceToMove
+                .movePosition(pointToWorldCoordinateMap.get(JSON
+                .stringify(arrayPoint)), doJumpAnimation);
+            this.pieceKeeperArray[removePoint.x][removePoint.z] = undefined;
+            this.pieceKeeperArray[arrayPoint.x][arrayPoint.z] = this
+                .originalPieceToMove;
+            clearHighlightedTileList();
+            this.originalPieceToMove = null;
+
+            // If the piece found was not null, AKA it was a jump, move the 
+            // taken piece.
+            if (midPointPiece != null) {
+                var removeX = midPointPiece.boardPosition.x, 
+                    removeZ = midPointPiece.boardPosition.z;
+                this.pieceKeeperArray[removeX][removeZ] = undefined;
+                await midPointPiece.removeFromGame(this.currentTurn);
+            }
+
+            var currentPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
+            // Make King by checking piece color, position, and size of winning stack
+            if (this.currentTurn == 'red' && arrayPoint.z == 0){
+                currentPiece.makeKing(this.meshGroup);
+            } else if (this.currentTurn == 'black' && arrayPoint.z == 7){
+                currentPiece.makeKing(this.meshGroup);
+            }
+            // Check for a winner, otherwise rotate the turn to the other player.
+            if (!this.checkForWinner()) {
+                await this.rotateTurn();
+            }
+        } else {
+            highlightValidMoves();
+            this.originalPieceToMove = selectedPiece;
         }
     }
 
@@ -785,23 +838,42 @@ class PieceKeeper {
         this.color = piece.color;
     }
 
-    /**
-     * Makes the piecekeeper a king, adding a second checker on top of it.
-     * 
-     * @param {CheckerPiece} piece The piece to stack on top of the existing 
-     * checker.
-     */
-    makeKing(piece) {
+    makeKing(group) {
         this.isKing = true;
-        this.pieceList.push(piece);
+        
+        const newPieceColor = (this.color == 'red') ? 'black' : 'red';
+        const stackTopPos = winningPlayerLocations[newPieceColor];
 
-        // "Stack" the piece on top of the current piece.
-        var stackPos = this.pieceList[0].worldPosition;
+        if (this.color == 'red' && redWinningPile.length > 0){
+            var piece = blackWinningPile.pop();
+        } else if (this.color == 'black' && blackWinningPile.length > 0) {
+            var piece = redWinningPile.pop();
+        } else {
+            var piece = new CheckerPiece(this.color, stackTopPos, group);
+        }
+        
+        const startPos = stackTopPos;
+        const endPos = this.worldPosition;
+        endPos.y += .1;
+        const totalAnimationTime = 1000;
 
-        var y = stackPos.y;
-        this.pieceList.forEach((piece) => {
-            piece.mesh.position.set(stackPos.x, y, stackPos.z);
-            y += .1;
+        return new Promise((resolve, reject) => {
+            const midPoint = Utils.getMidpoint(startPos, endPos);
+            midPoint.y += 1;
+            const curvePoints = Utils.getCatmullRomCurve([startPos, midPoint, 
+                endPos], totalAnimationTime);
+
+            new TWEEN.Tween({index: 0})
+                .to({index: totalAnimationTime}, totalAnimationTime)
+                .onUpdate((index) => {
+                    const point = curvePoints[Math.floor(index.index)];
+                    piece.movePosition(point);
+                })
+                .onComplete(() => {
+                    this.pieceList.push(piece);
+                    resolve();
+                })
+                .start();
         });
     }
 
