@@ -30,6 +30,8 @@ const blackTexture = new THREE.TextureLoader()
  * A class for a single CheckerPiece.
  */
 class CheckerPiece {
+
+    
     /**
      * The geometry for each piece.
      */
@@ -695,6 +697,9 @@ class GameBoard {
             tween.start();
         });
     }
+
+    
+
 }
 
 /**

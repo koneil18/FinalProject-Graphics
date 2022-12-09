@@ -35,9 +35,19 @@
         import { ParticleSimulator, BurstHandler } from './dust.js';
 
         const scene = new THREE.Scene();
+        var loader = new THREE.TextureLoader();
+        var bgTexture = loader.load('/assets/attic/atticimg.jpg',
+            function ( texture ){
+                var img = texture.img;
+                var bgWidth = img.width;
+                var bgHeight = img.height;
+            }
+        );
+        scene.background = bgTexture;
+
         const camera = new THREE.PerspectiveCamera(75, window
             .innerWidth / window.innerHeight, .1, 3000);
-        camera.position.set(0, 5, 5);
+        camera.position.set(0, 8, 12);
         camera.lookAt(new THREE.Vector3(0, 0, 0));
         scene.add(camera);
 
@@ -48,10 +58,9 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
 
-        const color = 0xFFFFFF;
-        const intensity = 1;
-        const light = new THREE.AmbientLight(color, intensity);
-        scene.add(light);
+        var dl = new THREE.PointLight(0xffffff, 1.2);
+        dl.position.set(-5, 5, 5);
+        scene.add(dl);
 
         const atticDimensions = new THREE.Box3(new THREE.Vector3(-10, -10, -10), 
             new THREE.Vector3(10, 10, 10));
