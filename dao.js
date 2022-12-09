@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { Light } from "three";
 
 /*
 * A map to hold the correct winning stack location for each player.
@@ -96,7 +97,7 @@ class CheckerPiece {
         this.materials = [
             // Side
             new THREE.MeshPhongMaterial({
-                side: THREE.DoubleSide,
+                side: THREE.FrontSide,
                 color: (this.color == 'red') ? new THREE
                     .Color('rgb(208, 12, 24)') : new THREE
                         .Color('rgb(22, 22, 22)')
@@ -104,18 +105,19 @@ class CheckerPiece {
 
             // Top
             new THREE.MeshPhongMaterial({
-                side: THREE.DoubleSide,
+                side: THREE.FrontSide,
                 map: (this.color == 'red') ? redTexture : blackTexture
             }),
 
             // Bottom
             new THREE.MeshPhongMaterial({
-                side: THREE.DoubleSide,
+                side: THREE.FrontSide,
                 map: (this.color == 'red') ? redTexture : blackTexture
             })
         ];
 
         this.mesh = new THREE.Mesh(this.geometry, this.materials);
+        this.mesh.receiveShadow = true;
         this.mesh.position.set(position.x, position.y, position.z);
         group.add(this.mesh);
     }
@@ -157,13 +159,11 @@ class GameBoard {
      * @param {THREE.Scene} scene The scene object. 
      * @param {THREE.Camera} camera The camera object.
      * @param {BurstHandler} burstHandler The burst handler object.
-     * @param {Light} light The scene's lighting.
      */
-    constructor(scene, camera, burstHandler, light) {
+    constructor(scene, camera, burstHandler) {
         this.scene = scene;
         this.camera = camera;
         this.burstHandler = burstHandler;
-        this.light = light;
 
         this.tilesArray = this.buildBoard();
         this.initPieces();
@@ -213,7 +213,7 @@ class GameBoard {
                     new Point(j, i)), currentPos);
 
                 const material = new THREE.MeshPhongMaterial({
-                    side: THREE.DoubleSide,
+                    side: THREE.FrontSide,
                     specular: 0x050505,
                     shininess: 100,
                     map: (fillRed) ? redWoodTexture : blackWoodTexture
@@ -222,6 +222,8 @@ class GameBoard {
                 fillRed = !fillRed;
 
                 const mesh = new THREE.Mesh(geometry, material);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
                 mesh.tileColor = currentColor;
                 meshesArray[j][i] = mesh;
                 mesh.position.set(currentPos.x, currentPos.y, currentPos.z);
@@ -238,19 +240,23 @@ class GameBoard {
             .load('assets/board/walnut.jpg');
         var woodGeometry = new THREE.BoxGeometry(8, .5, 8);
         var woodMaterial = new THREE.MeshPhongMaterial({
-            side: THREE.DoubleSide,
+            side: THREE.FrontSide,
             map: walnutTexture
         });
         var woodMesh = new THREE.Mesh(woodGeometry, woodMaterial);
+        woodMesh.castShadow = true;
+        woodMesh.receiveShadow = true;
         this.allObjects.push(woodMesh);
         woodMesh.position.y = -.26;
         group.add(woodMesh);
         var cylinderGeometry = new THREE.CylinderGeometry(3.75, 3.75, .75, 128);
         var cylinderMaterial = new THREE.MeshPhongMaterial({
-            side: THREE.DoubleSide,
+            side: THREE.FrontSide,
             map: walnutTexture
         });
         var cylinderMesh = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
+        cylinderMesh.castShadow = true;
+        cylinderMesh.receiveShadow = true;
         this.allObjects.push(cylinderMesh);
         cylinderMesh.position.set(0, -.75, 0);
         group.add(cylinderMesh);
@@ -258,10 +264,12 @@ class GameBoard {
         // Add a table.
         var tableGeometry = new THREE.CylinderGeometry(8, 8, .3, 128);
         var tableMaterial = new THREE.MeshPhongMaterial({
-            side: THREE.DoubleSide,
+            side: THREE.FrontSide,
             map: new THREE.TextureLoader().load('assets/board/tabletop.jpg')
         });
         var tableMesh = new THREE.Mesh(tableGeometry, tableMaterial);
+        tableMesh.castShadow = true;
+        tableMesh.receiveShadow = true;
         this.allObjects.push(tableMesh);
         tableMesh.position.y = -1.3;
         this.scene.add(tableMesh);
@@ -715,9 +723,6 @@ class GameBoard {
                     rotateAboutWorldAxis(this.camera, new THREE
                         .Vector3(0, 1, 0), THREE.MathUtils
                         .degToRad(angle.angle - currDeg)); 
-                    // rotateAboutWorldAxis(this.light, new THREE
-                    //     .Vector3(0, 1, 0), THREE.MathUtils
-                    //     .degToRad(angle.angle - currDeg));
                 })
                 .onComplete(() => {
                     // Flip the current turn.
