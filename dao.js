@@ -29,7 +29,6 @@ const blackTexture = new THREE.TextureLoader()
     .load('assets/pieces/black_checker_piece.png');
 
 class Utils {
-
     /**
      * Calculates the midpoint between the two given points.
      *
@@ -181,7 +180,7 @@ class GameBoard {
         this.tilesArray = this.buildBoard();
         this.initPieces();
 
-        this.pieceKeeperArray[0][0].makeKing(this.boardGroup);
+        this.pieceKeeperArray[3][5].makeKing(this.meshGroup);
     }
 
     /**
@@ -641,7 +640,13 @@ class GameBoard {
                 //         .stringify(arrayPoint)));
                 // }
 
-                // DO THE CHECK FOR KING HERE, THEN PULL 1 PIECE FOR THE KINGING.
+                var currentPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
+                // Make King by checking piece color, position, and size of winning stack
+                if (this.currentTurn == 'red' && arrayPoint.z == 0){
+                    await currentPiece.makeKing(this.meshGroup);
+                } else if (this.currentTurn == 'black' && arrayPoint.z == 7){
+                    await currentPiece.makeKing(this.meshGroup);
+                }
 
                 // Check for a winner, otherwise rotate the turn to the other player.
                 if (!this.checkForWinner()) {
@@ -651,50 +656,6 @@ class GameBoard {
                 highlightValidMoves();
                 this.originalPieceToMove = selectedPiece;
             }
-
-            return false;
-        }
-
-        if (this.originalPieceToMove != null && 
-                isHighlightedPointSelected(arrayPoint)) {
-            // Get the piece in between the point selected and the move-to pos.
-            var midPointPiece = getMidPointPiece(this.originalPieceToMove
-                .boardPosition.x, this.originalPieceToMove.boardPosition
-                .z, arrayPoint.x, arrayPoint.z);
-            
-            var doJumpAnimation = (midPointPiece != null);
-            const removePoint = await this.originalPieceToMove
-                .movePosition(pointToWorldCoordinateMap.get(JSON
-                .stringify(arrayPoint)), doJumpAnimation);
-            this.pieceKeeperArray[removePoint.x][removePoint.z] = undefined;
-            this.pieceKeeperArray[arrayPoint.x][arrayPoint.z] = this
-                .originalPieceToMove;
-            clearHighlightedTileList();
-            this.originalPieceToMove = null;
-
-            // If the piece found was not null, AKA it was a jump, move the 
-            // taken piece.
-            if (midPointPiece != null) {
-                var removeX = midPointPiece.boardPosition.x, 
-                    removeZ = midPointPiece.boardPosition.z;
-                this.pieceKeeperArray[removeX][removeZ] = undefined;
-                await midPointPiece.removeFromGame(this.currentTurn);
-            }
-
-            var currentPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
-            // Make King by checking piece color, position, and size of winning stack
-            if (this.currentTurn == 'red' && arrayPoint.z == 0){
-                currentPiece.makeKing(this.meshGroup);
-            } else if (this.currentTurn == 'black' && arrayPoint.z == 7){
-                currentPiece.makeKing(this.meshGroup);
-            }
-            // Check for a winner, otherwise rotate the turn to the other player.
-            if (!this.checkForWinner()) {
-                await this.rotateTurn();
-            }
-        } else {
-            highlightValidMoves();
-            this.originalPieceToMove = selectedPiece;
         }
     }
 
@@ -797,10 +758,7 @@ class GameBoard {
                 });
             tween.start();
         });
-    }
-
-    
-
+    }    
 }
 
 /**
@@ -957,9 +915,16 @@ class PieceKeeper {
                         // Get the point in the list to move to, then move each
                         // CheckerPiece in the list.
                         const currentPos = curvePoints[Math.floor(index.index)];
-                        this.pieceList.forEach((piece) => {
-                            piece.movePosition(currentPos);
-                        });
+
+                        console.log(currentPos);
+                        this.pieceList[0].movePosition(currentPos);
+
+                        if (this.pieceList.length > 1) {
+                            currentPos.y += .15;
+                            this.pieceList[1].movePosition(currentPos);
+
+                            console.log(currentPos);
+                        }
                     })
                     .onComplete(() => {
                         this.worldPosition = position;
@@ -983,10 +948,16 @@ class PieceKeeper {
                 new TWEEN.Tween(startPos)
                     .to(endPos, totalAnimationTime)
                     .onUpdate((currentPos) => {
-                        this.pieceList.forEach((piece) => {
-                            piece.movePosition(new THREE.Vector3(currentPos
-                                .x, currentPos.y, currentPos.z))
-                        });
+                        const currentVec = new THREE.Vector3(currentPos.x, 
+                            currentPos.y, currentPos.z);
+                        this.pieceList[0].movePosition(currentVec);
+
+                        if (this.pieceList.length > 1) {
+                            currentVec.y += .15;
+                            this.pieceList[1].movePosition(currentVec);
+
+                            console.log(currentVec);
+                        }
                     })
                     .onComplete(() => {
                         this.worldPosition = position;
