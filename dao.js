@@ -222,7 +222,7 @@ class GameBoard {
 
                 const mesh = new THREE.Mesh(geometry, material);
                 mesh.castShadow = true;
-                mesh.receiveShadow = true;
+                mesh.receiveShadow = false;
                 mesh.tileColor = currentColor;
                 meshesArray[j][i] = mesh;
                 mesh.position.set(currentPos.x, currentPos.y, currentPos.z);

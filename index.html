@@ -72,12 +72,12 @@
         renderer.shadowMap.enabled = true;
 
         // The lights are positioned so it looks like they are coming in from the windows.
-        var windowOne = new THREE.PointLight(0xffffff, 1.4, 80);
+        var windowOne = new THREE.PointLight(new THREE.Color(1, 1, 0.9), 1.4, 80);
         windowOne.position.set(-20, 10, 20);
         windowOne.castShadow = true;
         scene.add(windowOne);
 
-        var windowTwo = new THREE.PointLight(0xffffff, 1.4, 80);
+        var windowTwo = new THREE.PointLight(new THREE.Color(1, 1, 0.9), 1.4, 80);
         windowTwo.position.set(-20, 10, -7);
         windowTwo.castShadow = true;
         scene.add(windowTwo);
@@ -87,7 +87,7 @@
         const bh = new BurstHandler();
 
         // This needs to be disabled to make MouseClicking work.
-        new OrbitControls(camera, renderer.domElement);
+        // new OrbitControls(camera, renderer.domElement);
 
         const rayCaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
