@@ -8,6 +8,8 @@ const winningPlayerLocations = {
     'black': new THREE.Vector3(-6, -1, 0)
 }
 
+let redWinnerCount = 0;
+let blackWinnerCount = 0;
 /**
  * A map to hold the world coordinates of the board tiles and their
  * corresponding Point objects.
@@ -26,16 +28,45 @@ const redTexture = new THREE.TextureLoader()
 const blackTexture = new THREE.TextureLoader()
     .load('assets/pieces/black_checker_piece.png');
 
+
+class Utils {
+
+    /**
+     * Calculates the midpoint between the two given points.
+     *
+     * @param {THREE.Vector3} firstPos The first position.
+     * @param {THREE.Vector3} secondPos The second position.
+     * @returns A new `THREE.Vector3` that holds the coordinates of the midpoint.
+     */
+    static getMidpoint(firstPos, secondPos) {
+        return new THREE.Vector3(
+            (firstPos.x + secondPos.x) / 2, 
+            (firstPos.y + secondPos.y) / 2,
+            (firstPos.z + secondPos.z) / 2
+        );
+    }
+
+    /**
+     * Generates a CatmullRom Curve along the given list of points.
+     * 
+     * @param {[THREE.Vector3, THREE.Vector3,...]} positions The array of 
+     * positions to generate the curve on.
+     * @param {Number} points The number of points to sample on the curve. 
+     * Defaults to 50 points.
+     */
+    static getCatmullRomCurve(positions, points=50) {
+        const curve = new THREE.CatmullRomCurve3(positions);
+        return curve.getPoints(points);
+    }
+}
 /**
  * A class for a single CheckerPiece.
  */
 class CheckerPiece {
-
-    
     /**
      * The geometry for each piece.
      */
-    geometry = new THREE.CylinderGeometry(.4, .4, .2, 32);
+    geometry = new THREE.CylinderGeometry(.4, .4, .15, 32);
     materials = null;
     color = null;
     mesh = null;
@@ -108,8 +139,6 @@ class GameBoard {
     tilesArray = null
     allObjects = [];
     scene = null;
-    redWinnerCount = 0;
-    blackWinnerCount = 0;
     currentTurn = 'red';
     validMovesVisible = false;
     highlightedPointList = [];
@@ -506,9 +535,9 @@ class GameBoard {
              * coordinates.
              * 
              * @param {Number} x1 The first x coordinate.
-             * @param {*} z1 The first z coordinate.
-             * @param {*} x2 The second x coordinate.
-             * @param {*} z2 The second z coordinate.
+             * @param {Number} z1 The first z coordinate.
+             * @param {Number} x2 The second x coordinate.
+             * @param {Number} z2 The second z coordinate.
              * @returns A PieceKeeper object if a jump was performed, otherwise null.
              */
             const getMidPointPiece = (x1, z1, x2, z2) => {
@@ -568,7 +597,8 @@ class GameBoard {
                     var removeX = midPointPiece.boardPosition.x, 
                         removeZ = midPointPiece.boardPosition.z;
 
-                    var removedColor = this.pieceKeeperArray[removeX][removeZ].color;
+                    var removedColor = this.pieceKeeperArray[removeX][removeZ]
+                        .color;
                     this.burstHandler.add(midPointPiece.worldPosition.clone());
                     
                     this.pieceKeeperArray[removeX][removeZ] = undefined;
@@ -606,12 +636,12 @@ class GameBoard {
     checkForWinner() {
         var winningPlayer = null, foundWinner = false;
 
-        if (this.redWinnerCount == 12) {
+        if (redWinnerCount == 12) {
             winningPlayer = 'red';
             foundWinner = true;
         }
 
-        if (this.blackWinnerCount == 12) {
+        if (blackWinnerCount == 12) {
             winningPlayer = 'black';
             foundWinner = true;
         }
@@ -686,7 +716,8 @@ class GameBoard {
                 })
                 .onComplete(() => {
                     // Flip the current turn.
-                    this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
+                    this.currentTurn = (this.currentTurn == 'red') ? 'black' 
+                        : 'red';
 
                     this.cameraAngle = 0;
 
@@ -758,33 +789,53 @@ class PieceKeeper {
     }
 
     /**
+     * Removes the `PieceKeeper` object from the gameboard and stacks it on top 
+     * of one of the winning stacks.
      * 
      * @param {String} winningPlayer The player that is going to receive the 
      * checker.
+     * @returns A new `Promise`.
      */
     removeFromGame(winningPlayer) {
-        var movePos = winningPlayerLocations[winningPlayer]
-        this.pieceList.forEach(async (piece) => {
-            await piece.movePosition(movePos);
-            if (winningPlayer == 'red') {
-                this.redWinnerCount++;
-            } else {
-                this.blackWinnerCount++;
-            }
-        });
-        
-        if(winningPlayer == 'red')
-            movePos.y += 0.2 * this.redWinnerCount;
-        else
-            movePos.y += 0.2 * this.blackWinnerCount;
+        const startPos = this.worldPosition;
+        const endPos = winningPlayerLocations[winningPlayer];
+        endPos.y += (.15 * this.pieceList.length);
+        const midPos = Utils.getMidpoint(startPos, endPos);
+        midPos.y += 1;
 
-        this.worldPosition = movePos;
-        this.boardPosition = null;
+        const curvePoints = Utils
+            .getCatmullRomCurve([startPos, midPos, endPos], 1500);
+
+        return new Promise((resolve, reject) => {
+            return new TWEEN.Tween({index: 0})
+                .to({index: 1500}, 1500)
+                .onUpdate((index) => {
+                    const pos = curvePoints[Math.floor(index.index)];
+                    this.pieceList.forEach(async (piece) => {
+                        await piece.movePosition(pos);
+                    });
+                })
+                .onComplete(() => {
+                    // Update the map for the end location.
+                    winningPlayerLocations[winningPlayer] = endPos;
+                    this.worldPosition = endPos;
+                    this.boardPosition = null;
+
+                    if (winningPlayer == 'red') {
+                        redWinnerCount += this.pieceList.length;
+                    } else {
+                        blackWinnerCount += this.pieceList.length;
+                    }
+                    resolve();
+                })
+                .start();
+        });    
     }
 
     /**
      * Moves the current PieceKeeper object to the specified point, animating a
      * "jump" if the `doJumpAnimation` flag is set to true.
+     * 
      * @param {THREE.Vector3} position The position to move the PieceKeeper to.
      * @param {Boolean} doJumpAnimation Whether or not to perform a jump 
      * animation.
@@ -795,52 +846,51 @@ class PieceKeeper {
         this.boardPosition = worldCoordinateToPointMap.get(JSON
             .stringify(position));
         const totalAnimationTime = 1000;
-        return new Promise((resolve, reject) => {
-            const startPos = {
-                x: this.worldPosition.x,
-                y: this.worldPosition.y,
-                z: this.worldPosition.z
-            };
-            const endPos = {
-                x: position.x,
-                y: position.y,
-                z: position.z
-            };
 
+        return new Promise((resolve, reject) => {
+            // Check for a jump, using a curve to move the pieces along. 
+            // Otherwise, slide the piece on the board.
             if (doJumpAnimation) {
-                const midPos = {
-                    x: (startPos.x + endPos.x) / 2,
-                    y: 1,
-                    z: (startPos.z + endPos.z) / 2
-                };
-                new TWEEN.Tween(startPos)
-                    .to(midPos, totalAnimationTime / 2)
-                    .onUpdate((currentPos) => {
+                // Get the start and end positions, along with an endpoint.
+                const startPos = this.worldPosition;
+                const endPos = position;
+                const midPos = Utils.getMidpoint(startPos, endPos);
+
+                // Elevate the endpoint by .75.
+                midPos.y += .75;
+
+                // Generate the curve.
+                const curvePoints = Utils.getCatmullRomCurve([startPos, midPos, 
+                    endPos], totalAnimationTime);
+                new TWEEN.Tween({index: 0})
+                    .to({index: totalAnimationTime})
+                    .onUpdate((index) => {
+                        // Get the point in the list to move to, then move each
+                        // CheckerPiece in the list.
+                        const currentPos = curvePoints[Math.floor(index.index)];
                         this.pieceList.forEach((piece) => {
-                            piece.movePosition(new THREE.Vector3(currentPos
-                                .x, currentPos.y, currentPos.z));
+                            piece.movePosition(currentPos);
                         });
                     })
                     .onComplete(() => {
-                        new TWEEN.Tween(midPos)
-                            .to(endPos, totalAnimationTime / 2)
-                            .onUpdate((currentPos) => {
-                                this.pieceList.forEach((piece) => {
-                                    piece.movePosition(new THREE
-                                        .Vector3(currentPos.x, currentPos
-                                        .y, currentPos.z));
-                                });
-                            })
-                            .onComplete(() => {
-                                this.worldPosition = position;
-                                this.boardPosition = worldCoordinateToPointMap
-                                    .get(JSON.stringify(position));
-                                resolve(originalBoardPos);
-                            })
-                            .start();
+                        this.worldPosition = position;
+                        this.boardPosition = worldCoordinateToPointMap
+                            .get(JSON.stringify(position));
+                        resolve(originalBoardPos);   
                     })
                     .start();
-            } else {
+            } else { 
+                const startPos = {
+                    x: this.worldPosition.x,
+                    y: this.worldPosition.y,
+                    z: this.worldPosition.z
+                };
+                const endPos = {
+                    x: position.x,
+                    y: position.y,
+                    z: position.z
+                }
+
                 new TWEEN.Tween(startPos)
                     .to(endPos, totalAnimationTime)
                     .onUpdate((currentPos) => {

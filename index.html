@@ -38,9 +38,9 @@
         var loader = new THREE.TextureLoader();
         var bgTexture = loader.load('/assets/attic/atticimg.jpg',
             function ( texture ){
-                var img = texture.img;
-                var bgWidth = img.width;
-                var bgHeight = img.height;
+                // var img = texture.img;
+                var bgWidth = texture.width;
+                var bgHeight = texture.height;
             }
         );
         scene.background = bgTexture;
