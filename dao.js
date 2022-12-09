@@ -715,9 +715,9 @@ class GameBoard {
                     rotateAboutWorldAxis(this.camera, new THREE
                         .Vector3(0, 1, 0), THREE.MathUtils
                         .degToRad(angle.angle - currDeg)); 
-                    rotateAboutWorldAxis(this.light, new THREE
-                        .Vector3(0, 1, 0), THREE.MathUtils
-                        .degToRad(angle.angle - currDeg));
+                    // rotateAboutWorldAxis(this.light, new THREE
+                    //     .Vector3(0, 1, 0), THREE.MathUtils
+                    //     .degToRad(angle.angle - currDeg));
                 })
                 .onComplete(() => {
                     // Flip the current turn.

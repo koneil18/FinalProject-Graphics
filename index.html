@@ -51,10 +51,11 @@
 
         var panMesh = new THREE.Mesh(panSphere, panMaterial);
         scene.add(panMesh);
+        panMesh.translateY(-50);
 
         const camera = new THREE.PerspectiveCamera(75, window
             .innerWidth / window.innerHeight, .1, 3000);
-        camera.position.set(0, 5, 5);
+        camera.position.set(0, 5, 7);
         camera.lookAt(new THREE.Vector3(0, 0, 0));
         scene.add(camera);
 
@@ -144,6 +145,8 @@
                 case "tab":
                     break;
                 case "alt":
+                    break;
+                case "control":
                     break;
                 case "enter":
                     if(key.includes(gameBoard.easterEgg) && gameBoard.easterEgg.length == 10)
