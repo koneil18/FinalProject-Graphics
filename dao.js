@@ -1,12 +1,11 @@
 import * as THREE from "three";
-import { Light } from "three";
 
 /*
 * A map to hold the correct winning stack location for each player.
 */
 const winningPlayerLocations = {
-    'red': new THREE.Vector3(6, -1, 0),
-    'black': new THREE.Vector3(-6, -1, 0)
+    'red': new THREE.Vector3(-5, -1, 4.5),
+    'black': new THREE.Vector3(5, -1, -4.5)
 }
 
 let redWinnerCount = 0;
