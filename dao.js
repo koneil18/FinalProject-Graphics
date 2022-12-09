@@ -640,9 +640,9 @@ class GameBoard {
 
                 var currentPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
                 // Make King by checking piece color, position, and size of winning stack
-                if (this.currentTurn == 'red' && arrayPoint.z == 0){
+                if (this.currentTurn == 'red' && arrayPoint.z == 0 && !currentPiece.isKing){
                     await currentPiece.makeKing(this.meshGroup);
-                } else if (this.currentTurn == 'black' && arrayPoint.z == 7){
+                } else if (this.currentTurn == 'black' && arrayPoint.z == 7 && !currentPiece.isKing){
                     await currentPiece.makeKing(this.meshGroup);
                 }
 
@@ -914,14 +914,11 @@ class PieceKeeper {
                         // CheckerPiece in the list.
                         const currentPos = curvePoints[Math.floor(index.index)];
 
-                        console.log(currentPos);
                         this.pieceList[0].movePosition(currentPos);
 
                         if (this.pieceList.length > 1) {
                             currentPos.y += .15;
                             this.pieceList[1].movePosition(currentPos);
-
-                            console.log(currentPos);
                         }
                     })
                     .onComplete(() => {
