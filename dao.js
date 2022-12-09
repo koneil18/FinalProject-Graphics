@@ -1,36 +1,5 @@
 import * as THREE from "three";
 
-class Utils {
-
-    /**
-     * Calculates the midpoint between the two given points.
-     *
-     * @param {THREE.Vector3} firstPos The first position.
-     * @param {THREE.Vector3} secondPos The second position.
-     * @returns A new `THREE.Vector3` that holds the coordinates of the midpoint.
-     */
-    static getMidpoint(firstPos, secondPos) {
-        return new THREE.Vector3(
-            (firstPos.x + secondPos.x) / 2, 
-            (firstPos.y + secondPos.y) / 2,
-            (firstPos.z + secondPos.z) / 2
-        );
-    }
-
-    /**
-     * Generates a CatmullRom Curve along the given list of points.
-     * 
-     * @param {[THREE.Vector3, THREE.Vector3,...]} positions The array of 
-     * positions to generate the curve on.
-     * @param {Number} points The number of points to sample on the curve. 
-     * Defaults to 50 points.
-     */
-    static getCatmullRomCurve(positions, points=50) {
-        const curve = new THREE.CatmullRomCurve3(positions);
-        return curve.getPoints(points);
-    }
-}
-
 /*
 *
 */
