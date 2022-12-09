@@ -302,7 +302,7 @@ class ParticleSimulator
         this.burstHandler = burstHandler;
 
         // count stores the number of particles to create.
-        this.count = 10000;
+        this.count = 500;
 
         // Creates bounding boxes and bounding spheres for every object in the object array.
         for(var i = 0; i < objArray.length; i++)
