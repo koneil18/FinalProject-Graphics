@@ -80,6 +80,7 @@ class CheckerPiece {
 
         this.mesh = new THREE.Mesh(this.geometry, this.materials);
         this.mesh.position.set(position.x, position.y, position.z);
+        this.mesh.castShadow = true;
         group.add(this.mesh);
     }
 
@@ -608,22 +609,52 @@ class PieceKeeper {
         this.color = piece.color;
     }
 
-    makeKing(piece) {
+    makeKing() {
         this.isKing = true;
-        console.log(piece);
-        this.pieceList.push(piece);
-        console.log(this.pieceList[0])
+        if (this.color = 'red'){
+           var piece = blackWinningPile.pop();
+        }else {
+            var piece = redWinningPile.pop();
+        }
+
+         this.pieceList.push(piece);
+        console.log(this.pieceList[0]);
 
         // "Stack" the piece on top of the current piece.
-        var stackPos = this.pieceList[0].worldPosition;
+        var stackPos = this.pieceList[0].mesh.position;
         console.log(stackPos);
-        var y = stackPos.y;
         this.pieceList.forEach((piece) => {
-            piece.mesh.position.set(stackPos.x, y, stackPos.z);
-            y += .1;
+            stackPos.y += .2;
         });
 
-        piece.movePosition( this.boardPosition);
+        console.log(this.pieceList);
+        const totalAnimationTime = 1000;
+        return new Promise((resolve, reject) => {
+            const startPos = {
+                x: stackPos.x,
+                y: stackPos.y,
+                z: stackPos.z
+            };
+            const endPos = {
+                x: this.worldPosition.x,
+                y: this.worldPosition.y,
+                z: this.worldPosition.z
+            }; 
+
+            new TWEEN.Tween(startPos)
+                .to(endPos, totalAnimationTime)
+                .onUpdate((currentPos) => {
+                        this.movePosition(new THREE.Vector3(currentPos
+                                .x, currentPos.y, currentPos.z))
+                    })
+                .onComplete(() => {
+                        this.worldPosition = position;
+                        this.boardPosition = worldCoordinateToPointMap.get(JSON
+                            .stringify(position));
+                        resolve(originalBoardPos);
+                    })
+                    .start();
+                });
     }
 
     removeFromGame(winningPlayer) {
@@ -651,6 +682,7 @@ class PieceKeeper {
                 y: this.worldPosition.y,
                 z: this.worldPosition.z
             };
+
             const endPos = {
                 x: position.x,
                 y: position.y,
