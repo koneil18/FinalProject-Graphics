@@ -81,13 +81,19 @@
         windowTwo.position.set(-20, 10, -7);
         windowTwo.castShadow = true;
         scene.add(windowTwo);
+
+        var lampLight = new THREE.DirectionalLight(0xffffe0, .45);
+        lampLight.position.set(0, 6, 0);
+        lampLight.target.position.set(0, 0, 0);
+        scene.add(lampLight);
+        scene.add(lampLight.target);
         
         const atticDimensions = new THREE.Box3(new THREE.Vector3(-10, -10, -10), 
             new THREE.Vector3(10, 10, 10));
         const bh = new BurstHandler();
 
         // This needs to be disabled to make MouseClicking work.
-        new OrbitControls(camera, renderer.domElement);
+        //new OrbitControls(camera, renderer.domElement);
 
         const rayCaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
