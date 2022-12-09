@@ -1,13 +1,26 @@
-import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import * as THREE from "three";
 
 /*
-*
+* A map to hold the correct winning stack location for each player.
 */
 const winningPlayerLocations = {
-    'red': new THREE.Vector3(5, 0, 0),
-    'black': new THREE.Vector3(-5, 0, 0)
+    'red': new THREE.Vector3(6, -1, 0),
+    'black': new THREE.Vector3(-6, -1, 0)
 }
 
+/**
+ * A map to hold the world coordinates of the board tiles and their
+ * corresponding Point objects.
+ */
+const worldCoordinateToPointMap = new Map();
+
+/**
+ * A map to hold the point objects of the board array and their corresponding
+ * THREE.Vector3 object.
+ */
+const pointToWorldCoordinateMap = new Map();
+
+// Red and Black textures for each checker piece.
 const redTexture = new THREE.TextureLoader()
     .load('assets/pieces/red_checker_piece.png');
 const blackTexture = new THREE.TextureLoader()
@@ -22,7 +35,7 @@ class CheckerPiece {
     /**
      * The geometry for each piece.
      */
-    geometry = new THREE.CylinderGeometry(.4, .4, .1, 32);
+    geometry = new THREE.CylinderGeometry(.4, .4, .2, 32);
     materials = null;
     color = null;
     mesh = null;
@@ -38,10 +51,6 @@ class CheckerPiece {
     constructor(color, position, group) {
         this.color = color;
         this.buildPiece(group, position);
-    }
-
-    get getColor() {
-        return this.color;
     }
 
     /**
@@ -86,7 +95,6 @@ class CheckerPiece {
      * @param {THREE.Vector3} newPos The new position to move the piece to. 
      */
     movePosition(newPos) {
-        // Probably need to tween here.
         this.mesh.position.set(newPos.x, newPos.y, newPos.z);
     }
 }
@@ -98,30 +106,38 @@ class CheckerPiece {
 class GameBoard {
     pieceKeeperArray = Array.from(Array(8), () => new Array(8));
     tilesArray = null
-    worldCoordinateToArrayIndexMap = new Map();
+    allObjects = [];
     scene = null;
     redWinnerCount = 0;
     blackWinnerCount = 0;
     currentTurn = 'red';
     validMovesVisible = false;
-    highlightedTileList = [];
+    highlightedPointList = [];
     currentSelectedPieceKeeper = null;
     boardGroup = null;
     cameraAngle = 0;
+    originalPieceToMovePosition = null;
+    highlightedTileList = [];
+    interactionLock = true;
+    easterEgg = '';
+    easterEggCode = 'wwssadadbaenter'
 
-    constructor(scene, camera) {
+    /**
+     * Constructs the GameBoard object and handles all logic for the game.
+     * 
+     * @param {THREE.Scene} scene The scene object. 
+     * @param {THREE.Camera} camera The camera object.
+     * @param {BurstHandler} burstHandler The burst handler object.
+     */
+    constructor(scene, camera, burstHandler) {
         this.scene = scene;
         this.camera = camera;
+        this.burstHandler = burstHandler;
+
         this.tilesArray = this.buildBoard();
         this.initPieces();
-
-        this.rotationTest();
     }
 
-    async rotationTest() {
-        await this.rotateTurn();
-        // await this.rotateTurn();
-    }
     /**
      * Linearizes the 2D Array of meshes into a single dimension array.
      * 
@@ -138,6 +154,12 @@ class GameBoard {
         return returnList;
     }
 
+    /**
+     * Builds the board in the scene and returns a list of the mesh objects
+     * used to show the tiles of the board.
+     * 
+     * @returns An array of mesh objects that represents the tiles of the board.
+     */
     buildBoard() {
         const meshesArray = Array.from(Array(8), () => new Array(8));
         var fillRed = false;
@@ -154,8 +176,10 @@ class GameBoard {
                 x += 1;
                 var currentPos = new THREE.Vector3(x, y, z);
 
-                this.worldCoordinateToArrayIndexMap.set(JSON
+                worldCoordinateToPointMap.set(JSON
                     .stringify(currentPos), new Point(j, i));
+                pointToWorldCoordinateMap.set(JSON.stringify(
+                    new Point(j, i)), currentPos);
 
                 const material = new THREE.MeshPhongMaterial({
                     side: THREE.DoubleSide,
@@ -187,6 +211,7 @@ class GameBoard {
             map: walnutTexture
         });
         var woodMesh = new THREE.Mesh(woodGeometry, woodMaterial);
+        this.allObjects.push(woodMesh);
         woodMesh.position.y = -.26;
         group.add(woodMesh);
         var cylinderGeometry = new THREE.CylinderGeometry(3.75, 3.75, .75, 128);
@@ -195,6 +220,7 @@ class GameBoard {
             map: walnutTexture
         });
         var cylinderMesh = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
+        this.allObjects.push(cylinderMesh);
         cylinderMesh.position.set(0, -.75, 0);
         group.add(cylinderMesh);
 
@@ -205,6 +231,7 @@ class GameBoard {
             map: new THREE.TextureLoader().load('assets/board/tabletop.jpg')
         });
         var tableMesh = new THREE.Mesh(tableGeometry, tableMaterial);
+        this.allObjects.push(tableMesh);
         tableMesh.position.y = -1.3;
         this.scene.add(tableMesh);
 
@@ -214,6 +241,9 @@ class GameBoard {
         return meshesArray;
     }
 
+    /**
+     * Adds the physical checker pieces to the board.
+     */
     initPieces() {
         var rowCount = 0;
         // Add the black checkers.
@@ -225,7 +255,7 @@ class GameBoard {
                     pos.x++;
                 }
 
-                var arrayPoint = this.worldCoordinateToArrayIndexMap
+                var arrayPoint = worldCoordinateToPointMap
                     .get(JSON.stringify(pos));
 
                 var piece = new CheckerPiece('black', pos, this.boardGroup);
@@ -238,14 +268,14 @@ class GameBoard {
         rowCount = 0;
         // Add the red checkers.
         for (var z = 3.5; z >= 1.5; z--) {
-            for (var x = -3.5; x < 3.5; x += 2) {
+            for (var x = -2.5; x <= 3.5; x += 2) {
                 var pos = new THREE.Vector3(x, 0, z);
 
                 if (rowCount == 1) {
-                    pos.x++;
+                    pos.x--;
                 }
 
-                var arrayPoint = this.worldCoordinateToArrayIndexMap
+                var arrayPoint = worldCoordinateToPointMap
                     .get(JSON.stringify(pos));
 
                 var piece = new CheckerPiece('red', pos, this.boardGroup);
@@ -257,99 +287,361 @@ class GameBoard {
         }
     }
 
-    handleClick(position) {
-        var arrayPoint = this.worldCoordinateToArrayIndexMap.get(JSON
-            .stringify(position));
-        const highlightValidMoves = () => {
-            var pieceKeeperObj = this
-                .pieceKeeperArray[arrayPoint.x][arrayPoint.z];
+    /**
+     * Handles a click by the user. This can either show the valid moves to 
+     * highlight, or move the piece to a selected position.
+     * 
+     * @param {THREE.Vector3} position The world coordinate the user clicked at.
+     */
+    async handleClick(position) {
+        if(!this.interactionLock) {
+            // The point object corresponding to where the user clicked.
+            var arrayPoint = worldCoordinateToPointMap.get(JSON
+                .stringify(position));
 
-            const highlightTile = (tile) => {
-                const edges = new THREE.EdgesGeometry(tile.geometry);
-                const outline = new THREE.LineSegments(edges, new THREE
-                    .LineBasicMaterial({ color: 'white' }));
-                outline.position.set(tile.position.x, tile.position.y, tile
-                    .position.z);
-                this.scene.add(outline);
-                this.highlightedTileList.push(outline);
-            };
+            // Get the piece the user selected.
+            const selectedPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
 
+            /**
+             * Clears the list of highlighted tiles.
+             */
             const clearHighlightedTileList = () => {
+                this.highlightedPointList = [];
                 while (this.highlightedTileList.length > 0) {
                     var currentTile = this.highlightedTileList.pop();
                     this.scene.remove(currentTile);
                 }
             };
 
-            var startX = arrayPoint.x, startZ = arrayPoint.z;
+            /**
+             * Highlights the valid moves the user can make based on the checker
+             * piece they clicked on.
+             */
+            const highlightValidMoves = () => {
 
-            // const detectValidMoves = (x, z) => {
-            //     const inBounds = (x, z) => {
-            //         retu
-            //     }
-            // };
+                /**
+                 * Highlights the tile at the given coordinate.
+                 * 
+                 * @param {Point} coord The coordinate of the board to highlight.
+                 */
+                const highlightTile = (coord) => {
+                    const tile = this.tilesArray[coord.x][coord.z];
+                    const edges = new THREE.EdgesGeometry(tile.geometry);
+                    const outline = new THREE.LineSegments(edges, new THREE
+                        .LineBasicMaterial({ color: 'white' }));
+                    outline.position.set(tile.position.x, tile.position.y, tile
+                        .position.z);
+                    this.scene.add(outline);
+                    this.highlightedPointList.push(coord);
+                    this.highlightedTileList.push(outline);
+                };
 
-            var posList = [];
-            const selectedPiece = this.pieceKeeperArray[startX][startZ];
-            if (selectedPiece != undefined) {
-                if (this.tilesArray[startX][startZ].tileColor == this
-                    .currentTurn && this.tilesArray[startX][startZ] != 
-                    undefined) {
-                    clearHighlightedTileList();
-
-                    if (this.currentTurn == 'black') {
-                        var diagLeft = this
-                            .pieceKeeperArray[startX - 1][startZ - 1];
-                        if (diagLeft == undefined) {
-                            posList.push(new Point(startX - 1, startZ - 1));
-                        } else if (diagLeft.color != this.currentTurn) {
-                            var diag2Left = this
-                                .pieceKeeperArray[startX - 2][startZ - 2];
-                            if (diag2Left == undefined) {
-                                posList.push(new Point(startX - 2, startZ - 2));
-                            }
+                /**
+                 * Returns whether or not the given coordinate is on the board or 
+                 * not.
+                 * 
+                 * @param {Number} x The x coordinate. 
+                 * @param {Number} z The z coordinate.
+                 * @returns A boolean representing if the coordinate is on the board
+                 * or not.
+                 */
+                const inBounds = (x, z) => {
+                    if (this.pieceKeeperArray[x] == undefined) {
+                        return false;
+                    } else {
+                        if ((x >= 0 && x <= 7) && (z >= 0 && z <= 7)) {
+                            return true;
                         }
-
-                        var diagRight = this
-                            .pieceKeeperArray[startX + 1][startZ - 1];
-                        if (diagRight == undefined) {
-                            posList.push(new Point(startX + 1, startZ - 2));
-                        } else if (diagRight.color != this.currentTurn) {
-                            var diag2Right = this
-                                .pieceKeeperArray[startX - 2][startZ - 2];
-                            if (diag2Right == undefined) {
-                                posList.push(new Point(startX + 2, startZ - 2));
-                            }
-                        }
-                    }
-                    for (var point of this.highlightedTileList) {
-                        console.log(point);
                     }
                 }
+
+                var startX = arrayPoint.x, startZ = arrayPoint.z;
+                var posList = [];
+                if (selectedPiece != undefined) {
+                    if (selectedPiece.color == this.currentTurn) {
+
+                        // Clear any tiles that may already be highlighted.
+                        clearHighlightedTileList();
+
+                        // Get the correct direction to look based on the color.
+                        var zFront = startZ + ((this.currentTurn == 'red') ? -1 : 1);
+                        var zJump = startZ + ((this.currentTurn == 'red') ? -2 : 2);
+
+                        // Check for a move diagonally to the left.
+                        var xLeft = startX - 1;
+                        if (inBounds(xLeft, zFront)) {
+                            var frontLeft = this.pieceKeeperArray[xLeft][zFront];
+
+                            // If the piece is blank, add it to the list to 
+                            // highlight. Otherwise, check for a jump.
+                            if (frontLeft == undefined) {
+                                posList.push(new Point(xLeft, zFront));
+                            } 
+                            else {
+                                // If the checker on the diagonal is the opposite 
+                                // team, then check 1 beyond that piece.
+                                if (frontLeft.color != this.currentTurn) {
+                                    xLeft--;
+
+                                    // Check to see if the jump coordinate is in
+                                    // bounds.
+                                    if (inBounds(xLeft, zJump)) {
+                                        var leftJumpPiece = this
+                                            .pieceKeeperArray[xLeft][zJump];
+                                        if (leftJumpPiece == undefined) {
+                                            posList.push(new Point(xLeft, zJump));
+                                        }
+                                    }                               
+                                }
+                            }
+                        }   
+                        
+                        // Check for a move diagonally to the right.
+                        var xRight = startX + 1;
+                        if (inBounds(xRight, zFront)) {
+                            const frontRight = this
+                                .pieceKeeperArray[xRight][zFront];
+
+                            // If the piece is blank, add it to the list to 
+                            // highlight. Otherwise, check for a jump.
+                            if (frontRight == undefined) {
+                                posList.push(new Point(xRight, zFront));
+                            } else {
+                                // If the checker on the diagonal is the opposite
+                                // team, then check 1 beyond that piece.
+                                if (frontRight.color != this.currentTurn) {
+                                    xRight++;
+
+                                    // Check to see if the jump coordinate is in
+                                    // bounds.
+                                    if (inBounds(xRight, zJump)) {
+                                        var rightJumpPiece = this.
+                                            pieceKeeperArray[xRight][zJump];
+                                        if (rightJumpPiece == undefined) {
+                                            posList.push(new Point(xRight, zJump));
+                                        }
+                                    }
+                                }
+                            }
+                        }   
+                        
+                        // If the selected piece was a king, check for moves in the
+                        // opposite direction. 
+                        if (selectedPiece.isKing) {
+                            // Get the correct direction to look based on the color.
+                            var zBehind = startZ + 
+                                ((this.currentTurn == 'red') ? 1 : -1);
+                            var zJump = startZ + 
+                                ((this.currentTurn == 'red') ? 2 : -2);
+
+                            // Check for a move diagonally to the left.
+                            xLeft = startX - 1;
+                            if (inBounds(xLeft, zBehind)) {
+                                var frontLeft = this.pieceKeeperArray[xLeft][zBehind];
+
+                                // If the piece is blank, add it to the list to 
+                                // highlight. Otherwise, check for a jump.
+                                if (frontLeft == undefined) {
+                                    posList.push(new Point(xLeft, zBehind));
+                                } 
+                                else {
+                                    // If the checker on the diagonal is the opposite 
+                                    // team, then check 1 beyond that piece.
+                                    if (frontLeft.color != this.currentTurn) {
+                                        xLeft--;
+
+                                        // Check to see if the jump coordinate is in
+                                        // bounds.
+                                        if (inBounds(xLeft, zJump)) {
+                                            var leftJumpPiece = this
+                                                .pieceKeeperArray[xLeft][zJump];
+                                            if (leftJumpPiece == undefined) {
+                                                posList.push(new Point(xLeft, zJump));
+                                            }
+                                        }                               
+                                    }
+                                }
+                            }   
+                            
+                            // Check for a move diagonally to the right.
+                            xRight = startX + 1;
+                            if (inBounds(xRight, zBehind)) {
+                                const frontRight = this
+                                    .pieceKeeperArray[xRight][zBehind];
+
+                                // If the piece is blank, add it to the list to 
+                                // highlight. Otherwise, check for a jump.
+                                if (frontRight == undefined) {
+                                    posList.push(new Point(xRight, zBehind));
+                                } else {
+                                    // If the checker on the diagonal is the opposite
+                                    // team, then check 1 beyond that piece.
+                                    if (frontRight.color != this.currentTurn) {
+                                        xRight++;
+
+                                        // Check to see if the jump coordinate is in
+                                        // bounds.
+                                        if (inBounds(xRight, zJump)) {
+                                            var rightJumpPiece = this.
+                                                pieceKeeperArray[xRight][zJump];
+                                            if (rightJumpPiece == undefined) {
+                                                posList.push(new Point(xRight, zJump));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Highlight every tile that was detected as valid.
+                        for (var point of posList) {
+                            highlightTile(point);
+                        }
+                    }
+                }
+            };
+
+            /**
+             * Find the piece on the board that is in the middle of the specified
+             * coordinates.
+             * 
+             * @param {Number} x1 The first x coordinate.
+             * @param {*} z1 The first z coordinate.
+             * @param {*} x2 The second x coordinate.
+             * @param {*} z2 The second z coordinate.
+             * @returns A PieceKeeper object if a jump was performed, otherwise null.
+             */
+            const getMidPointPiece = (x1, z1, x2, z2) => {
+                var midX = (x1 + x2) / 2,
+                    midZ = (z1 + z2) / 2;
+
+                if (midX - Math.floor(midX) !== 0 || midZ - Math
+                    .floor(midZ) !== 0) {
+                    return null;
+                }
+                
+                return this.pieceKeeperArray[midX][midZ];
             }
-        };
 
-        if (this.validMovesVisible) {
-            // Move the piece the user originally selected.
-        } else {
-            highlightValidMoves();
+            /**
+             * Returns whether or not the the point the user selected is highlighted
+             * or not.
+             * 
+             * @param {Point} selectedPoint The point the user selected.
+             * @returns A boolean representing if the point the user clicked is 
+             * highlighted or not.
+             */
+            const isHighlightedPointSelected = (selectedPoint) => {
+                for (const point of this.highlightedPointList) {
+                    if (point.x == selectedPoint.x && point.z == selectedPoint.z) {
+                        return true;
+                    }
+                }
 
+                return false;
+            }
+
+            // If the selected point was highlighted, then a move is being made.
+            if (this.originalPieceToMove != null && 
+                    (this.originalPieceToMove.color == this.currentTurn || 
+                        this.easterEgg == this.easterEggCode) && 
+                            isHighlightedPointSelected(arrayPoint)) {
+                this.interactionLock = true;
+                // Get the piece in between the point selected and the move-to pos.
+                var midPointPiece = getMidPointPiece(this.originalPieceToMove
+                    .boardPosition.x, this.originalPieceToMove.boardPosition
+                    .z, arrayPoint.x, arrayPoint.z);
+                
+                var doJumpAnimation = (midPointPiece != null);
+                const removePoint = await this.originalPieceToMove
+                    .movePosition(pointToWorldCoordinateMap.get(JSON
+                    .stringify(arrayPoint)), doJumpAnimation);
+                this.pieceKeeperArray[removePoint.x][removePoint.z] = undefined;
+                this.pieceKeeperArray[arrayPoint.x][arrayPoint.z] = this
+                    .originalPieceToMove;
+                clearHighlightedTileList();
+                this.originalPieceToMove = null;
+
+                // If the piece found was not null, AKA it was a jump, move the 
+                // taken piece.
+                if (midPointPiece != null) {
+                    var removeX = midPointPiece.boardPosition.x, 
+                        removeZ = midPointPiece.boardPosition.z;
+
+                    var removedColor = this.pieceKeeperArray[removeX][removeZ].color;
+                    this.burstHandler.add(midPointPiece.worldPosition.clone());
+                    
+                    this.pieceKeeperArray[removeX][removeZ] = undefined;
+
+                    if(removedColor == 'red')
+                        await midPointPiece.removeFromGame('black');
+                    else
+                        await midPointPiece.removeFromGame('red');
+                }
+
+                // If a jump was made, check for a double jump.
+                // if (doJumpAnimation) {
+                //     this.handleClick(pointToWorldCoordinateMap.get(JSON
+                //         .stringify(arrayPoint)));
+                // }
+
+                // DO THE CHECK FOR KING HERE, THEN PULL 1 PIECE FOR THE KINGING.
+
+                // Check for a winner, otherwise rotate the turn to the other player.
+                if (!this.checkForWinner()) {
+                    await this.rotateTurn();
+                }
+            } else {
+                highlightValidMoves();
+                this.originalPieceToMove = selectedPiece;
+            }
         }
     }
 
+    /**
+     * Checks for a winner, and shows a winning message if found.
+     * 
+     * @returns A boolean representing if a winner was found or not.
+     */
     checkForWinner() {
-        var winningPlayer = null;
+        var winningPlayer = null, foundWinner = false;
 
         if (this.redWinnerCount == 12) {
-            winningPlayer = 'Red';
+            winningPlayer = 'red';
+            foundWinner = true;
         }
 
         if (this.blackWinnerCount == 12) {
-            winningPlayer = 'Black';
+            winningPlayer = 'black';
+            foundWinner = true;
         }
+
+        if (foundWinner) {
+            var popUpDiv = document.createElement('div');
+            popUpDiv.classList.add('fullScreenPopUp');
+            popUpDiv.innerHTML = `
+            <div id="preGamePopUp" class="fullScreenPopUp">
+                <h5 class='winningPlayerMessage'>The ${winningPlayer} player won!</h5>
+                <div class='btnsContainer'>  
+                    <a href=''><button class='playAgainBtn'>Play Again</button></a>
+                    <a href='https://www.youtube.com/watch?v=dQw4w9WgXcQ'><button class='playAgainBtn'>Play Super Checkers</button></a> 
+                </div>
+            </div>`;
+
+            document.getElementById('body').insertBefore(popUpDiv, document.body
+                .firstChild);
+        }
+
+        return foundWinner;
     }
 
-   rotateTurn() {
+    /**
+     * Rotates the current turn to the other user.
+     * 
+     * @returns A new `Promise` that will contain the position to clear on the 
+     * gameboard.
+     */
+    rotateTurn() {
         // From https://stackoverflow.com/questions/26660395/rotation-around-an-axis-three-js
         // In order to rotate about an axis, you must construct the rotation matrix (which will rotate about the axis by default)
         // Note: You can also use Quaternions or Euler angles, which you may see if you search online
@@ -367,24 +659,38 @@ class GameBoard {
         }
 
         //Rotate the camera
-        console.log('Beginning rotation', this.cameraAngle);
         return new Promise((resolve, reject) => {
+            // Gets the vector to compare to.
+            let posVec = (this.currentTurn == 'red') ? new THREE
+                .Vector3(0, 0, 1) : new THREE.Vector3(0, 0, -1);
             const tween = new TWEEN.Tween({angle: this.cameraAngle})
-                .to({angle: this.cameraAngle + 180}, 2000)
+                .to({angle: 180}, 2000)
+                .easing(TWEEN.Easing.Quadratic.InOut)
                 .onUpdate((angle) => {
-                    console.log(angle.angle);
+                    // Gets the normalized current position.
+                    var currPos = this.camera.position.clone().setY(0)
+                        .normalize();
+
+                    // Gets the ratio of the current position to the destination.
+                    var ratio = posVec.angleTo(currPos) / (Math.PI);
+                    // Gets the ratio in degrees.
+                    var currDeg = ratio * 180;
+
                     this.cameraAngle = angle.angle;
+
+                    // Gets how far it should rotate to get the desired current 
+                    // angle.
                     rotateAboutWorldAxis(this.camera, new THREE
                         .Vector3(0, 1, 0), THREE.MathUtils
-                        .degToRad(angle.angle)); 
+                        .degToRad(angle.angle - currDeg)); 
                 })
                 .onComplete(() => {
                     // Flip the current turn.
                     this.currentTurn = (this.currentTurn == 'red') ? 'black' : 'red';
 
-                    if (this.cameraAngle == 360) {
-                        this.cameraAngle = 0;
-                    }
+                    this.cameraAngle = 0;
+
+                    this.interactionLock = false;
 
                     resolve();
                 });
@@ -396,6 +702,9 @@ class GameBoard {
 
 }
 
+/**
+ * A class representing a point on the gameboard.
+ */
 class Point {
     constructor(x, z) {
         this.x = x;
@@ -414,13 +723,26 @@ class PieceKeeper {
     boardPosition = null;
     color = null;
 
+    /**
+     * Constructs a new `PieceKeeper` object that holds a single checker.
+     * 
+     * @param {THREE.Vector3} worldPosition The objects position in the scene. 
+     * @param {Point} boardPosition THe objects position on the board.
+     * @param {CheckerPiece} piece The piece the object holds.
+     */
     constructor(worldPosition, boardPosition, piece) {
         this.worldPosition = worldPosition;
         this.boardPosition = boardPosition;
-        this.piece = piece;
+        this.pieceList.push(piece);
         this.color = piece.color;
     }
 
+    /**
+     * Makes the piecekeeper a king, adding a second checker on top of it.
+     * 
+     * @param {CheckerPiece} piece The piece to stack on top of the existing 
+     * checker.
+     */
     makeKing(piece) {
         this.isKing = true;
         this.pieceList.push(piece);
@@ -435,27 +757,108 @@ class PieceKeeper {
         });
     }
 
-    removeFromGame(pieceObjList) {
-        
-        return new Promise((resolve, reject) => {     
-        if (this.piece.color == 'red'){
-            const tween = new TWEEN.Tween(this.piece)
-                    .to({x: -2, y: 0, z: 4}, 2000)
-                tween.start();
-            }
-        if (this.piece.color == 'black'){
-                const tween = new TWEEN.Tween(this.piece)
-                        .to({x: 10, y: 0, z: 4}, 2000)
-                    tween.start();
+    /**
+     * 
+     * @param {String} winningPlayer The player that is going to receive the 
+     * checker.
+     */
+    removeFromGame(winningPlayer) {
+        var movePos = winningPlayerLocations[winningPlayer]
+        this.pieceList.forEach(async (piece) => {
+            await piece.movePosition(movePos);
+            if (winningPlayer == 'red') {
+                this.redWinnerCount++;
+            } else {
+                this.blackWinnerCount++;
             }
         });
         
+        if(winningPlayer == 'red')
+            movePos.y += 0.2 * this.redWinnerCount;
+        else
+            movePos.y += 0.2 * this.blackWinnerCount;
+
+        this.worldPosition = movePos;
+        this.boardPosition = null;
     }
 
-    movePosition(position) {
-        this.pieceList.forEach((piece) => {
-            piece.movePosition(position)
+    /**
+     * Moves the current PieceKeeper object to the specified point, animating a
+     * "jump" if the `doJumpAnimation` flag is set to true.
+     * @param {THREE.Vector3} position The position to move the PieceKeeper to.
+     * @param {Boolean} doJumpAnimation Whether or not to perform a jump 
+     * animation.
+     * @returns A Promise that will resolve the original position of the piece.
+     */
+    movePosition(position, doJumpAnimation) {
+        const originalBoardPos = this.boardPosition;
+        this.boardPosition = worldCoordinateToPointMap.get(JSON
+            .stringify(position));
+        const totalAnimationTime = 1000;
+        return new Promise((resolve, reject) => {
+            const startPos = {
+                x: this.worldPosition.x,
+                y: this.worldPosition.y,
+                z: this.worldPosition.z
+            };
+            const endPos = {
+                x: position.x,
+                y: position.y,
+                z: position.z
+            };
+
+            if (doJumpAnimation) {
+                const midPos = {
+                    x: (startPos.x + endPos.x) / 2,
+                    y: 1,
+                    z: (startPos.z + endPos.z) / 2
+                };
+                new TWEEN.Tween(startPos)
+                    .to(midPos, totalAnimationTime / 2)
+                    .onUpdate((currentPos) => {
+                        this.pieceList.forEach((piece) => {
+                            piece.movePosition(new THREE.Vector3(currentPos
+                                .x, currentPos.y, currentPos.z));
+                        });
+                    })
+                    .onComplete(() => {
+                        new TWEEN.Tween(midPos)
+                            .to(endPos, totalAnimationTime / 2)
+                            .onUpdate((currentPos) => {
+                                this.pieceList.forEach((piece) => {
+                                    piece.movePosition(new THREE
+                                        .Vector3(currentPos.x, currentPos
+                                        .y, currentPos.z));
+                                });
+                            })
+                            .onComplete(() => {
+                                this.worldPosition = position;
+                                this.boardPosition = worldCoordinateToPointMap
+                                    .get(JSON.stringify(position));
+                                resolve(originalBoardPos);
+                            })
+                            .start();
+                    })
+                    .start();
+            } else {
+                new TWEEN.Tween(startPos)
+                    .to(endPos, totalAnimationTime)
+                    .onUpdate((currentPos) => {
+                        this.pieceList.forEach((piece) => {
+                            piece.movePosition(new THREE.Vector3(currentPos
+                                .x, currentPos.y, currentPos.z))
+                        });
+                    })
+                    .onComplete(() => {
+                        this.worldPosition = position;
+                        this.boardPosition = worldCoordinateToPointMap.get(JSON
+                            .stringify(position));
+                        resolve(originalBoardPos);
+                    })
+                    .start();
+            }
         });
+        
     }
 }
 
