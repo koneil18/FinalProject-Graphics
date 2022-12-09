@@ -71,7 +71,7 @@
 
         const rayCaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
-        const gameBoard = new GameBoard(scene, camera, bh);
+        const gameBoard = new GameBoard(scene, camera, bh, dl);
 
         window.playGameClick = (evt) => {
             evt.preventDefault();
@@ -182,7 +182,7 @@
         const ps = new ParticleSimulator(scene, atticDimensions, gameBoard
             .allObjects, bh);
         prevTime = performance.now();
-        console.log(ps.count);
+        
         render();
     </script>
 </body>

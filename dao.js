@@ -157,11 +157,13 @@ class GameBoard {
      * @param {THREE.Scene} scene The scene object. 
      * @param {THREE.Camera} camera The camera object.
      * @param {BurstHandler} burstHandler The burst handler object.
+     * @param {Light} light The scene's lighting.
      */
-    constructor(scene, camera, burstHandler) {
+    constructor(scene, camera, burstHandler, light) {
         this.scene = scene;
         this.camera = camera;
         this.burstHandler = burstHandler;
+        this.light = light;
 
         this.tilesArray = this.buildBoard();
         this.initPieces();
@@ -713,6 +715,9 @@ class GameBoard {
                     rotateAboutWorldAxis(this.camera, new THREE
                         .Vector3(0, 1, 0), THREE.MathUtils
                         .degToRad(angle.angle - currDeg)); 
+                    rotateAboutWorldAxis(this.light, new THREE
+                        .Vector3(0, 1, 0), THREE.MathUtils
+                        .degToRad(angle.angle - currDeg));
                 })
                 .onComplete(() => {
                     // Flip the current turn.
