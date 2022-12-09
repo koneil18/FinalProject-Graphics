@@ -1,5 +1,36 @@
 import * as THREE from "three";
 
+class Utils {
+
+    /**
+     * Calculates the midpoint between the two given points.
+     *
+     * @param {THREE.Vector3} firstPos The first position.
+     * @param {THREE.Vector3} secondPos The second position.
+     * @returns A new `THREE.Vector3` that holds the coordinates of the midpoint.
+     */
+    static getMidpoint(firstPos, secondPos) {
+        return new THREE.Vector3(
+            (firstPos.x + secondPos.x) / 2, 
+            (firstPos.y + secondPos.y) / 2,
+            (firstPos.z + secondPos.z) / 2
+        );
+    }
+
+    /**
+     * Generates a CatmullRom Curve along the given list of points.
+     * 
+     * @param {[THREE.Vector3, THREE.Vector3,...]} positions The array of 
+     * positions to generate the curve on.
+     * @param {Number} points The number of points to sample on the curve. 
+     * Defaults to 50 points.
+     */
+    static getCatmullRomCurve(positions, points=50) {
+        const curve = new THREE.CatmullRomCurve3(positions);
+        return curve.getPoints(points);
+    }
+}
+
 /*
 *
 */
@@ -24,7 +55,7 @@ class CheckerPiece {
     /**
      * The geometry for each piece.
      */
-    geometry = new THREE.CylinderGeometry(.4, .4, .2, 32);
+    geometry = new THREE.CylinderGeometry(.4, .4, .1, 32);
     materials = null;
     color = null;
     mesh = null;
@@ -122,6 +153,8 @@ class GameBoard {
 
         this.tilesArray = this.buildBoard();
         this.initPieces();
+
+        this.pieceKeeperArray[0][0].makeKing(this.boardGroup);
     }
 
     /**
@@ -180,6 +213,8 @@ class GameBoard {
             fillRed = !fillRed;
             x = -4.5;
             z += 1;
+
+            this.meshGroup = group;
         }
 
         // Add the piece the board sits on, and the support for it.
@@ -494,13 +529,9 @@ class GameBoard {
             var currentPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
             // Make King by checking piece color, position, and size of winning stack
             if (this.currentTurn == 'red' && arrayPoint.z == 0){
-                if(redWinningPile.length >= 1){
-                    currentPiece.makeKing( redWinningPile.pop());
-                }
-            }else if (this.currentTurn == 'black' && arrayPoint.z == 7){
-                if(blackWinningPile.length >= 1){
-                    currentPiece.makeKing( blackWinningPile.pop());
-                }
+                currentPiece.makeKing(this.meshGroup);
+            } else if (this.currentTurn == 'black' && arrayPoint.z == 7){
+                currentPiece.makeKing(this.meshGroup);
             }
             // Check for a winner, otherwise rotate the turn to the other player.
             if (!this.checkForWinner()) {
@@ -609,52 +640,43 @@ class PieceKeeper {
         this.color = piece.color;
     }
 
-    makeKing() {
+    makeKing(group) {
         this.isKing = true;
-        if (this.color = 'red'){
-           var piece = redWinningPile.pop();
-        }else if (this.color = 'black') {
+        
+        const newPieceColor = (this.color == 'red') ? 'black' : 'red';
+        const stackTopPos = winningPlayerLocations[newPieceColor];
+
+        if (this.color == 'red' && redWinningPile.length > 0){
             var piece = blackWinningPile.pop();
+        } else if (this.color == 'black' && blackWinningPile.length > 0) {
+            var piece = redWinningPile.pop();
+        } else {
+            var piece = new CheckerPiece(this.color, stackTopPos, group);
         }
-
-         this.pieceList.push(piece);
-        console.log(this.pieceList[0]);
-
-        // "Stack" the piece on top of the current piece.
-        var stackPos = this.pieceList[0].mesh.position;
-        console.log(stackPos);
-        this.pieceList.forEach((piece) => {
-            stackPos.y += .2;
-        });
-
-        console.log(this.pieceList);
+        
+        const startPos = stackTopPos;
+        const endPos = this.worldPosition;
+        endPos.y += .1;
         const totalAnimationTime = 1000;
-        return new Promise((resolve, reject) => {
-            const startPos = {
-                x: stackPos.x,
-                y: stackPos.y,
-                z: stackPos.z
-            };
-            const endPos = {
-                x: this.worldPosition.x,
-                y: this.worldPosition.y,
-                z: this.worldPosition.z
-            }; 
 
-            new TWEEN.Tween(startPos)
-                .to(endPos, totalAnimationTime)
-                .onUpdate((currentPos) => {
-                        this.movePosition(new THREE.Vector3(currentPos
-                                .x, currentPos.y, currentPos.z))
-                    })
+        return new Promise((resolve, reject) => {
+            const midPoint = Utils.getMidpoint(startPos, endPos);
+            midPoint.y += 1;
+            const curvePoints = Utils.getCatmullRomCurve([startPos, midPoint, 
+                endPos], totalAnimationTime);
+
+            new TWEEN.Tween({index: 0})
+                .to({index: totalAnimationTime}, totalAnimationTime)
+                .onUpdate((index) => {
+                    const point = curvePoints[Math.floor(index.index)];
+                    piece.movePosition(point);
+                })
                 .onComplete(() => {
-                        this.worldPosition = stackPos;
-                        this.boardPosition = worldCoordinateToPointMap.get(JSON
-                            .stringify(stackPos));
-                        resolve(this.boardPosition);
-                    })
+                    this.pieceList.push(piece);
+                    resolve();
+                })
                 .start();
-            });
+        });
     }
 
     removeFromGame(winningPlayer) {
