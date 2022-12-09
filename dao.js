@@ -81,17 +81,18 @@ class CheckerPiece {
      */
     constructor(color, position, group) {
         this.color = color;
-        this.buildPiece(group, position);
+        this.buildPiece(color, group, position);
     }
 
     /**
      * Builds a new checker geometry and adds it to the scene, moving it to the
      * specified position.
      * 
+     * @param {String} color The color of the checker piece.
      * @param {THREE.Scene} scene The scene object to add the checker piece to.
      * @param {THREE.Vector3} position The position to move the checker piece to.
      */
-    buildPiece(group, position) {
+    buildPiece(color, group, position) {
         // Depending on the color of the checker, build the correct materials.
         this.materials = [
             // Side
@@ -118,6 +119,14 @@ class CheckerPiece {
         this.mesh = new THREE.Mesh(this.geometry, this.materials);
         this.mesh.receiveShadow = true;
         this.mesh.position.set(position.x, position.y, position.z);
+
+        let rotateAmount = null;
+        if (color == 'red') {
+            rotateAmount = Math.PI / 2;
+        } else {
+            rotateAmount = -Math.PI / 2
+        }
+        this.mesh.rotateY(rotateAmount);
         group.add(this.mesh);
     }
 
