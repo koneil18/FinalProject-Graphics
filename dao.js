@@ -222,7 +222,6 @@ class GameBoard {
 
                 const mesh = new THREE.Mesh(geometry, material);
                 mesh.castShadow = true;
-                mesh.receiveShadow = false;
                 mesh.tileColor = currentColor;
                 meshesArray[j][i] = mesh;
                 mesh.position.set(currentPos.x, currentPos.y, currentPos.z);
@@ -810,7 +809,7 @@ class PieceKeeper {
         const endPos = winningPlayerLocations[winningPlayer];
         endPos.y += (.15 * this.pieceList.length);
         const midPos = Utils.getMidpoint(startPos, endPos);
-        midPos.y += 1;
+        midPos.y += 3;
 
         const curvePoints = Utils
             .getCatmullRomCurve([startPos, midPos, endPos], 1500);
