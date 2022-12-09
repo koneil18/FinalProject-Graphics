@@ -179,8 +179,6 @@ class GameBoard {
 
         this.tilesArray = this.buildBoard();
         this.initPieces();
-
-        this.pieceKeeperArray[3][5].makeKing(this.meshGroup);
     }
 
     /**
