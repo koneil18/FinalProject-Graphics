@@ -39,15 +39,13 @@
         var bgTexture = loader.load('/assets/attic/atticimg.jpg',
             function ( texture ){
                 var img = texture.img;
-                var bgWidth = img.width;
-                var bgHeight = img.height;
             }
         );
-        scene.background = bgTexture;
+        scene.background = bgTexture; 
 
         const camera = new THREE.PerspectiveCamera(75, window
             .innerWidth / window.innerHeight, .1, 3000);
-        camera.position.set(0, 5, 5);
+        camera.position.set(0, 7, 5.5);
         camera.lookAt(new THREE.Vector3(0, 0, 0));
         scene.add(camera);
 
@@ -58,8 +56,8 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
 
-        var dl = new THREE.PointLight(0xffffff, 1.2);
-        dl.position.set(-5, 5, 5);
+        var dl = new THREE.DirectionalLight(0xffffff, 1.1);
+        dl.position.set(-10, 8, 5);
         scene.add(dl);
 
         const atticDimensions = new THREE.Box3(new THREE.Vector3(-10, -10, -10), 

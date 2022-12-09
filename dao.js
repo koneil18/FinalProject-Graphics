@@ -86,6 +86,7 @@ class CheckerPiece {
 
         this.mesh = new THREE.Mesh(this.geometry, this.materials);
         this.mesh.position.set(position.x, position.y, position.z);
+        this.mesh.castShadows = true;
         group.add(this.mesh);
     }
 
@@ -213,7 +214,10 @@ class GameBoard {
         var woodMesh = new THREE.Mesh(woodGeometry, woodMaterial);
         this.allObjects.push(woodMesh);
         woodMesh.position.y = -.26;
+        woodMesh.castShadow = true;
+        woodMesh.receiveShadow = true;
         group.add(woodMesh);
+
         var cylinderGeometry = new THREE.CylinderGeometry(3.75, 3.75, .75, 128);
         var cylinderMaterial = new THREE.MeshPhongMaterial({
             side: THREE.DoubleSide,
@@ -222,6 +226,8 @@ class GameBoard {
         var cylinderMesh = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
         this.allObjects.push(cylinderMesh);
         cylinderMesh.position.set(0, -.75, 0);
+        cylinderMesh.castShadow = true;
+        cylinderMesh.receiveShadow = true;
         group.add(cylinderMesh);
 
         // Add a table.
@@ -233,6 +239,8 @@ class GameBoard {
         var tableMesh = new THREE.Mesh(tableGeometry, tableMaterial);
         this.allObjects.push(tableMesh);
         tableMesh.position.y = -1.3;
+        tableMesh.castShadow = true;
+        tableMesh.receiveShadow = true;
         this.scene.add(tableMesh);
 
         this.scene.add(group);
