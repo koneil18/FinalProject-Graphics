@@ -711,6 +711,9 @@ class GameBoard {
         return foundWinner;
     }
 
+    /**
+     * Initializes the button for the current player to forfeit the game.
+     */
     initForfeitButton() {
         const btn = document.createElement('button');
         btn.classList.add('playAgainBtn');
