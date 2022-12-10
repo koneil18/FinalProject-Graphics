@@ -68,7 +68,7 @@ class CheckerPiece {
     /**
      * The geometry for each piece.
      */
-    geometry = new THREE.CylinderGeometry(.4, .4, .15, 32);
+    geometry = new THREE.CylinderGeometry(.4, .4, .125, 32);
     materials = null;
     color = null;
     mesh = null;
@@ -163,7 +163,7 @@ class GameBoard {
     highlightedTileList = [];
     interactionLock = true;
     easterEgg = '';
-    easterEggCode = 'wwssadadbaenter'
+    easterEggCode = 'wwssadadbaenter';
 
     /**
      * Constructs the GameBoard object and handles all logic for the game.
@@ -213,7 +213,7 @@ class GameBoard {
             .load('assets/board/red_wood.jpg'), blackWoodTexture = new THREE
                 .TextureLoader().load('assets/board/black_wood.jpg');
 
-        var x = -4.5, y = 0, z = -3.5;
+        var x = -4.5, y = -.095, z = -3.5;
         for (var i = 0; i < 8; i++) {
             for (var j = 0; j < 8; j++) {
                 x += 1;
@@ -222,7 +222,7 @@ class GameBoard {
                 worldCoordinateToPointMap.set(JSON
                     .stringify(currentPos), new Point(j, i));
                 pointToWorldCoordinateMap.set(JSON.stringify(
-                    new Point(j, i)), currentPos);
+                    new Point(j, i)), new THREE.Vector3(x, 0, z));
 
                 const material = new THREE.MeshPhongMaterial({
                     side: THREE.FrontSide,
@@ -260,7 +260,7 @@ class GameBoard {
         woodMesh.castShadow = true;
         woodMesh.receiveShadow = true;
         this.allObjects.push(woodMesh);
-        woodMesh.position.y = -.26;
+        woodMesh.position.y = -.35;
         group.add(woodMesh);
         var cylinderGeometry = new THREE.CylinderGeometry(3.75, 3.75, .75, 128);
         var cylinderMaterial = new THREE.MeshPhongMaterial({
@@ -301,7 +301,7 @@ class GameBoard {
         // Add the black checkers.
         for (var z = -3.5; z <= -1.5; z++) {
             for (var x = -3.5; x < 3.5; x += 2) {
-                var pos = new THREE.Vector3(x, 0, z);
+                var pos = new THREE.Vector3(x, -.095, z);
 
                 if (rowCount == 1) {
                     pos.x++;
@@ -310,8 +310,10 @@ class GameBoard {
                 var arrayPoint = worldCoordinateToPointMap
                     .get(JSON.stringify(pos));
 
+                pos.y = 0;
                 var piece = new CheckerPiece('black', pos, this.boardGroup);
-                var pieceKeeper = new PieceKeeper(pos, arrayPoint, piece);
+                var pieceKeeper = new PieceKeeper(pos, arrayPoint, 
+                    piece);
                 this.pieceKeeperArray[arrayPoint.x][arrayPoint.z] = pieceKeeper;
             }
             rowCount++;
@@ -321,7 +323,7 @@ class GameBoard {
         // Add the red checkers.
         for (var z = 3.5; z >= 1.5; z--) {
             for (var x = -2.5; x <= 3.5; x += 2) {
-                var pos = new THREE.Vector3(x, 0, z);
+                var pos = new THREE.Vector3(x, -.095, z);
 
                 if (rowCount == 1) {
                     pos.x--;
@@ -330,6 +332,7 @@ class GameBoard {
                 var arrayPoint = worldCoordinateToPointMap
                     .get(JSON.stringify(pos));
 
+                pos.y = 0;
                 var piece = new CheckerPiece('red', pos, this.boardGroup);
                 var pieceKeeper = new PieceKeeper(pos, arrayPoint, piece);
                 this.pieceKeeperArray[arrayPoint.x][arrayPoint.z] = pieceKeeper;
@@ -599,6 +602,7 @@ class GameBoard {
                         this.easterEgg == this.easterEggCode) && 
                             isHighlightedPointSelected(arrayPoint)) {
                 this.interactionLock = true;
+
                 // Get the piece in between the point selected and the move-to pos.
                 var midPointPiece = getMidPointPiece(this.originalPieceToMove
                     .boardPosition.x, this.originalPieceToMove.boardPosition
@@ -638,11 +642,14 @@ class GameBoard {
                 //         .stringify(arrayPoint)));
                 // }
 
-                var currentPiece = this.pieceKeeperArray[arrayPoint.x][arrayPoint.z];
+                var currentPiece = this.pieceKeeperArray[arrayPoint
+                    .x][arrayPoint.z];
                 // Make King by checking piece color, position, and size of winning stack
-                if (this.currentTurn == 'red' && arrayPoint.z == 0 && !currentPiece.isKing){
+                if (this.currentTurn == 'red' && arrayPoint.z == 0 && 
+                    !currentPiece.isKing) {
                     await currentPiece.makeKing(this.meshGroup);
-                } else if (this.currentTurn == 'black' && arrayPoint.z == 7 && !currentPiece.isKing){
+                } else if (this.currentTurn == 'black' && arrayPoint.z == 7 && 
+                    !currentPiece.isKing){
                     await currentPiece.makeKing(this.meshGroup);
                 }
 
@@ -665,13 +672,23 @@ class GameBoard {
     checkForWinner() {
         var winningPlayer = null, foundWinner = false;
 
-        if (redWinnerCount == 12) {
-            winningPlayer = 'red';
+        var winningCounts = { red: 0, black: 0};
+
+        this.pieceKeeperArray.forEach((row) => {
+            row.forEach((pk) => {
+                if (pk != undefined) {
+                    winningCounts[pk.color] += pk.pieceList.length;
+                }
+            })
+        });
+
+        if (winningCounts['red'] === 0) {
+            winningPlayer = 'black';
             foundWinner = true;
         }
 
-        if (blackWinnerCount == 12) {
-            winningPlayer = 'black';
+        if (winningCounts['black'] === 0) {
+            winningPlayer = 'red';
             foundWinner = true;
         }
 
@@ -723,7 +740,7 @@ class GameBoard {
             let posVec = (this.currentTurn == 'red') ? new THREE
                 .Vector3(0, 0, 1) : new THREE.Vector3(0, 0, -1);
             const tween = new TWEEN.Tween({angle: this.cameraAngle})
-                .to({angle: 180}, 2000)
+                .to({angle: 180}, 1800)
                 .easing(TWEEN.Easing.Quadratic.InOut)
                 .onUpdate((angle) => {
                     // Gets the normalized current position.
@@ -810,7 +827,7 @@ class PieceKeeper {
         
         const startPos = stackTopPos;
         const endPos = this.worldPosition;
-        endPos.y += .1;
+        endPos.y += .129;
         const totalAnimationTime = 1000;
 
         return new Promise((resolve, reject) => {
@@ -889,7 +906,7 @@ class PieceKeeper {
     movePosition(position, doJumpAnimation) {
         const originalBoardPos = this.boardPosition;
         this.boardPosition = worldCoordinateToPointMap.get(JSON
-            .stringify(position));
+            .stringify(new THREE.Vector3(position.x, -.095, position.z)));
         const totalAnimationTime = 1000;
 
         return new Promise((resolve, reject) => {
@@ -924,7 +941,8 @@ class PieceKeeper {
                     .onComplete(() => {
                         this.worldPosition = position;
                         this.boardPosition = worldCoordinateToPointMap
-                            .get(JSON.stringify(position));
+                            .get(JSON.stringify(new THREE.Vector3(position.x, 
+                            -.095, position.z)));
                         resolve(originalBoardPos);   
                     })
                     .start();
@@ -950,14 +968,13 @@ class PieceKeeper {
                         if (this.pieceList.length > 1) {
                             currentVec.y += .15;
                             this.pieceList[1].movePosition(currentVec);
-
-                            console.log(currentVec);
                         }
                     })
                     .onComplete(() => {
                         this.worldPosition = position;
                         this.boardPosition = worldCoordinateToPointMap.get(JSON
-                            .stringify(position));
+                            .stringify(new THREE.Vector3(position.x, -.095, 
+                                position.z)));
                         resolve(originalBoardPos);
                     })
                     .start();
