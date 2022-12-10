@@ -1,3 +1,17 @@
+/**
+ * CSC3210 - Final Project
+ * 
+ * @author Kathryn O'Neil
+ * @author Jared Rathbun
+ * @author Garald Seip
+ * 
+ * RUBRIC FEATURES
+ * 
+ * 1. Ray Tracing - Used via mouse picking
+ * 2. Particle Simulation - Dust that flies through the air
+ * 3. Advanced Material Properties: Bump Mapping
+ */
+
 import * as THREE from "three";
 
 /*
@@ -109,13 +123,17 @@ class CheckerPiece {
             // Top
             new THREE.MeshPhongMaterial({
                 side: THREE.FrontSide,
-                map: (this.color == 'red') ? redTexture : blackTexture
+                map: (this.color == 'red') ? redTexture : blackTexture,
+                bumpMap: (this.color == 'red') ? redTexture : blackTexture,
+                bumpScale: .05
             }),
 
             // Bottom
             new THREE.MeshPhongMaterial({
                 side: THREE.FrontSide,
-                map: (this.color == 'red') ? redTexture : blackTexture
+                map: (this.color == 'red') ? redTexture : blackTexture,
+                bumpMap: (this.color == 'red') ? redTexture : blackTexture,
+                bumpScale: .05
             })
         ];
 
