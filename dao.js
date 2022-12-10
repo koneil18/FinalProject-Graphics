@@ -669,8 +669,8 @@ class GameBoard {
      * 
      * @returns A boolean representing if a winner was found or not.
      */
-    checkForWinner() {
-        var winningPlayer = null, foundWinner = false;
+    checkForWinner(forceWinner=false, winningPlayer=null) {
+        var foundWinner = false;
 
         var winningCounts = { red: 0, black: 0};
 
@@ -692,7 +692,7 @@ class GameBoard {
             foundWinner = true;
         }
 
-        if (foundWinner) {
+        if (foundWinner || (forceWinner && winningPlayer)) {
             var popUpDiv = document.createElement('div');
             popUpDiv.classList.add('fullScreenPopUp');
             popUpDiv.innerHTML = `
@@ -709,6 +709,30 @@ class GameBoard {
         }
 
         return foundWinner;
+    }
+
+    initForfeitButton() {
+        const btn = document.createElement('button');
+        btn.classList.add('playAgainBtn');
+        btn.innerText = 'Forfeit Game';
+        btn.style.cssText = `
+            position: absolute;
+            top: 5%;
+            margin-left: auto;
+            margin-right: auto; 
+            left: 0;
+            right: 0;
+            z-index: 1000000000000000000; 
+            max-width: 25%;
+        `;
+         
+        btn.onclick = () => {
+            this.checkForWinner(true, 
+                ((this.currentTurn == 'red') ? 'black' : 'red'));
+        };
+
+        document.getElementById('body').insertBefore(btn, document.body
+            .firstChild);
     }
 
     /**

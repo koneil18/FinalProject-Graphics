@@ -104,6 +104,7 @@
             evt.preventDefault();
             document.getElementById('preGamePopUp').remove();
             gameBoard.interactionLock = false;
+            gameBoard.initForfeitButton();
         }
 
         // Found at: https://threejs.org/docs/#api/en/core/Raycaster
