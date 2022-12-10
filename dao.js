@@ -710,6 +710,7 @@ class GameBoard {
         }
 
         if (foundWinner || (forceWinner && winningPlayer)) {
+            document.getElementById('forfeitButton').remove();
             var popUpDiv = document.createElement('div');
             popUpDiv.classList.add('fullScreenPopUp');
             popUpDiv.innerHTML = `
@@ -733,6 +734,7 @@ class GameBoard {
      */
     initForfeitButton() {
         const btn = document.createElement('button');
+        btn.setAttribute("id", "forfeitButton");
         btn.classList.add('playAgainBtn');
         btn.innerText = 'Forfeit Game';
         btn.style.cssText = `
