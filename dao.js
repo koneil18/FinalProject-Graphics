@@ -22,8 +22,7 @@ const winningPlayerLocations = {
     'black': new THREE.Vector3(5, -1, -4.5)
 }
 
-let redWinnerCount = 0;
-let blackWinnerCount = 0;
+
 /**
  * A map to hold the world coordinates of the board tiles and their
  * corresponding Point objects.
