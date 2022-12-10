@@ -82,7 +82,7 @@
         windowTwo.castShadow = true;
         scene.add(windowTwo);
 
-        var lampLight = new THREE.DirectionalLight(0xffffe0, .45);
+        var lampLight = new THREE.DirectionalLight(0xffffe0, .25);
         lampLight.position.set(0, 6, 0);
         lampLight.target.position.set(0, 0, 0);
         scene.add(lampLight);
@@ -180,9 +180,15 @@
                 gameBoard.easterEgg = '';
 
             if(gameBoard.easterEgg == key && !startedOn)
+            {
                 window.alert('Checkers was never meant for this.');
+                time = performance.now();
+            }
             else if(gameBoard.easterEgg != key && startedOn)
+            {
                 window.alert('Everything is the way it should be.');
+                time = performance.now();
+            }
             
             // console.log("gameBoard.easterEgg: [" + gameBoard.easterEgg + "], key: [" + key + "]");
         };
