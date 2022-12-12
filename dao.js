@@ -929,11 +929,6 @@ class PieceKeeper {
                     this.worldPosition = endPos;
                     this.boardPosition = null;
 
-                    if (winningPlayer == 'red') {
-                        redWinnerCount += this.pieceList.length;
-                    } else {
-                        blackWinnerCount += this.pieceList.length;
-                    }
                     resolve();
                 })
                 .start();
